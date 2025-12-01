@@ -1,4 +1,4 @@
-import { auth } from "@/auth.config";
+import { auth } from "@clerk/nextjs/server"; // Import Clerk's auth
 import { redirect } from "next/navigation";
 
 export default async function AdminLayout({
@@ -8,7 +8,7 @@ export default async function AdminLayout({
 }) {
   const session = await auth();
 
-  if (!session || session.user?.role !== "admin") {
+  if (!session || session.user?.publicMetadata?.role !== "admin") {
     redirect("/unauthorized");
   }
 

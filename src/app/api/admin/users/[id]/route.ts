@@ -2,7 +2,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth.config";
+import { auth } from "@clerk/nextjs/server"; // Import Clerk's auth
 
 type RouteContext = { params: Promise<{ id: string }> }; // Explicitly define params as a Promise
 
@@ -12,7 +12,7 @@ export async function PUT(
 ) {
   try {
     const session = await auth();
-    if (!session || session.user?.role !== "admin") {
+    if (!session || session.user?.publicMetadata?.role !== "admin") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
@@ -47,7 +47,7 @@ export async function GET(
 ) {
   try {
     const session = await auth();
-    if (!session || session.user?.role !== "admin") {
+    if (!session || session.user?.publicMetadata?.role !== "admin") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 

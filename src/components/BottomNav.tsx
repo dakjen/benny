@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MessageSquare, HelpCircle, Info, Users } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs"; // Import useUser from Clerk
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { user } = useUser(); // Use Clerk's useUser hook
 
   const links = [
     { href: "/chat", label: "Chat", icon: MessageSquare },
@@ -15,7 +15,8 @@ export function BottomNav() {
     { href: "/help", label: "Help", icon: Info },
   ];
 
-  if (session?.user?.role === "admin") {
+  // Conditionally add the admin link if the user is an admin
+  if (user?.publicMetadata?.role === "admin") {
     links.push({ href: "/admin/users", label: "Manage Users", icon: Users });
   }
 

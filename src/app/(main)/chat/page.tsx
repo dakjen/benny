@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs"; // Import useUser from Clerk
 import { Send } from "lucide-react";
 
 export default function ChatPage() {
-  const { data: session } = useSession();
+  const { user, isSignedIn } = useUser(); // Use Clerk's useUser hook
   const [activeTab, setActiveTab] = useState("team");
   const [message, setMessage] = useState("");
 
@@ -17,7 +17,8 @@ export default function ChatPage() {
     setMessage("");
   };
 
-  if (session?.user?.role === "admin") {
+  // Conditionally render admin chat view
+  if (isSignedIn && user?.publicMetadata?.role === "admin") {
     return (
       <div className="flex flex-col h-full bg-card text-foreground">
         <header className="bg-background p-4 text-center z-10 shadow-md">

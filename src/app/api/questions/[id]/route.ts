@@ -1,15 +1,45 @@
 import { db } from "@/db";
 import { questions } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+
+type RouteContext = { params: Promise<{ id: string }> };
+
+export async function GET(
+  request: NextRequest,
+  context: RouteContext
+) {
+  try {
+    const { id } = await context.params;
+    const questionId = parseInt(id);
+
+    const question = await db
+      .select()
+      .from(questions)
+      .where(eq(questions.id, questionId));
+
+    if (question.length === 0) {
+      return NextResponse.json({ message: "Question not found." }, { status: 404 });
+    }
+
+    return NextResponse.json(question[0], { status: 200 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { message: "An error occurred while fetching the question." },
+      { status: 500 }
+    );
+  }
+}
 
 export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: RouteContext
 ) {
   try {
     const { questionText, category, expectedAnswer } = await request.json();
-    const id = parseInt(params.id);
+    const { id } = await context.params;
+    const questionId = parseInt(id);
 
     if (!questionText) {
       return NextResponse.json(
@@ -25,7 +55,7 @@ export async function PUT(
         category,
         expectedAnswer,
       })
-      .where(eq(questions.id, id))
+      .where(eq(questions.id, questionId))
       .returning();
 
     if (updatedQuestion.length === 0) {
@@ -46,15 +76,16 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: RouteContext
 ) {
   try {
-    const id = parseInt(params.id);
+    const { id } = await context.params;
+    const questionId = parseInt(id);
 
     const deletedQuestion = await db
       .delete(questions)
-      .where(eq(questions.id, id))
+      .where(eq(questions.id, questionId))
       .returning();
 
     if (deletedQuestion.length === 0) {

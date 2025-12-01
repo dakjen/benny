@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { auth } from "@/auth.config";
 
 export async function GET(request: Request) {
   try {

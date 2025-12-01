@@ -12,7 +12,7 @@ export async function PUT(
 ) {
   try {
     const session = await auth();
-    if (!session || session.user?.publicMetadata?.role !== "admin") {
+    if (!session || (session.sessionClaims?.publicMetadata as { role?: string })?.role !== "admin") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
@@ -47,7 +47,7 @@ export async function GET(
 ) {
   try {
     const session = await auth();
-    if (!session || session.user?.publicMetadata?.role !== "admin") {
+    if (!session || (session.sessionClaims?.publicMetadata as { role?: string })?.role !== "admin") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 

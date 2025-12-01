@@ -8,7 +8,7 @@ export default async function AdminLayout({
 }) {
   const session = await auth();
 
-  if (!session || session.user?.publicMetadata?.role !== "admin") {
+  if (!session || (session.sessionClaims?.publicMetadata as { role?: string })?.role !== "admin") {
     redirect("/unauthorized");
   }
 

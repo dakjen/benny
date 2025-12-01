@@ -6,7 +6,7 @@ import { auth } from "@clerk/nextjs/server"; // Import Clerk's auth
 export async function GET(request: Request) {
   try {
     const session = await auth();
-    if (!session || session.user?.publicMetadata?.role !== "admin") {
+    if (!session || (session.sessionClaims?.publicMetadata as { role?: string })?.role !== "admin") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 

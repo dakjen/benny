@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image"; // Import Image component
 
 type Team = {
   id: number;
@@ -55,6 +56,7 @@ export default function HomePage() {
     if (response.ok) {
       const newPlayer = await response.json();
       // Store player info in localStorage to persist across pages
+      localStorage.setItem("playerId", newPlayer.id); // Store player ID
       localStorage.setItem("playerName", newPlayer.name);
       localStorage.setItem("teamId", newPlayer.teamId);
       localStorage.setItem("gameId", newPlayer.gameId);
@@ -67,6 +69,13 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col items-center justify-center h-full bg-background text-foreground p-4 text-center">
+      <Image
+        src="/assets/oldben.png"
+        alt="Old Ben"
+        width={200}
+        height={200}
+        className="mb-4 rounded-full" // Added some styling
+      />
       <h1 className="text-4xl font-permanent-marker mb-2">Benjamin's 25th Birthday</h1>
       <p className="text-lg font-manrope italic">the frontal lobe develops.</p>
       <p className="text-lg font-manrope italic mb-8">The scavenger hunt begins.</p>

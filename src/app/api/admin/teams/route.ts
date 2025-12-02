@@ -1,9 +1,15 @@
 import { db } from "@/db";
 import { teams } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/auth";
 import { NextResponse } from "next/server";
 
 export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user?.role !== "admin") {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const allTeams = await db.select().from(teams);
     return NextResponse.json(allTeams, { status: 200 });
@@ -17,6 +23,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user?.role !== "admin") {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { name, gameId } = await request.json();
 

@@ -7,11 +7,12 @@ import Link from "next/link";
 type Team = {
   id: number;
   name: string;
+  gameId: number; // Added gameId
 };
 
 export default function HomePage() {
   const [teams, setTeams] = useState<Team[]>([]);
-  const [selectedTeam, setSelectedTeam] = useState("");
+  const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null); // Changed to selectedTeamId
   const [playerName, setPlayerName] = useState("");
   const router = useRouter();
 
@@ -19,22 +20,49 @@ export default function HomePage() {
     const fetchTeams = async () => {
       const response = await fetch("/api/teams");
       const data = await response.json();
-      console.log("teams data", data); // Add this line
+      console.log("teams data", data);
       setTeams(data);
     };
     fetchTeams();
   }, []);
 
-  const handleEnterGame = (e: React.FormEvent) => {
+  const handleEnterGame = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedTeam.trim() === "" || playerName.trim() === "") {
+    if (selectedTeamId === null || playerName.trim() === "") {
       // Basic validation
       return;
     }
-    // Store user info in localStorage to persist across pages
-    localStorage.setItem("teamName", selectedTeam);
-    localStorage.setItem("playerName", playerName);
-    router.push("/chat");
+
+    const selectedTeam = teams.find(team => team.id === selectedTeamId);
+    if (!selectedTeam) {
+      // Handle error: selected team not found
+      return;
+    }
+
+    // Create player in the database
+    const response = await fetch("/api/players", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: playerName,
+        teamId: selectedTeam.id,
+        gameId: selectedTeam.gameId,
+      }),
+    });
+
+    if (response.ok) {
+      const newPlayer = await response.json();
+      // Store player info in localStorage to persist across pages
+      localStorage.setItem("playerName", newPlayer.name);
+      localStorage.setItem("teamId", newPlayer.teamId);
+      localStorage.setItem("gameId", newPlayer.gameId);
+      router.push("/chat");
+    } else {
+      // Handle error
+      console.error("Failed to create player");
+    }
   };
 
   return (
@@ -45,14 +73,14 @@ export default function HomePage() {
 
       <form onSubmit={handleEnterGame} className="w-full max-w-sm space-y-4">
         <select
-          value={selectedTeam}
-          onChange={(e) => setSelectedTeam(e.target.value)}
+          value={selectedTeamId || ""}
+          onChange={(e) => setSelectedTeamId(Number(e.target.value))}
           className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
           required
         >
           <option value="" disabled>Select a team</option>
           {teams.map((team) => (
-            <option key={team.id} value={team.name}>
+            <option key={team.id} value={team.id}>
               {team.name}
             </option>
           ))}

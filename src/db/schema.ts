@@ -14,6 +14,10 @@ export const questions = pgTable("questions", {
   questionText: text("question_text").notNull(),
   category: text("category"),
   expectedAnswer: text("expected_answer"),
+  gameId: integer("game_id")
+    .notNull()
+    .references(() => games.id, { onDelete: "cascade" }),
+  points: integer("points").notNull().default(0),
 });
 
 export const directMessages = pgTable("direct_messages", {
@@ -27,9 +31,34 @@ export const directMessages = pgTable("direct_messages", {
     .$defaultFn(() => new Date()),
 });
 
+export const games = pgTable("games", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
+  gameId: integer("game_id")
+    .notNull()
+    .references(() => games.id, { onDelete: "cascade" }),
+});
+
+export const players = pgTable("players", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  teamId: integer("team_id")
+    .notNull()
+    .references(() => teams.id, { onDelete: "cascade" }),
+  gameId: integer("game_id")
+    .notNull()
+    .references(() => games.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
 // NextAuth.js tables

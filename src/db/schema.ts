@@ -22,10 +22,15 @@ export const questions = pgTable("questions", {
 
 export const directMessages = pgTable("direct_messages", {
   id: serial("id").primaryKey(),
-  sender: text("sender").notNull(),
-  recipient: text("recipient").notNull(),
+  sender: text("sender").notNull(), // This will be player ID
   message: text("message").notNull(),
-  teamName: text("team_name").notNull(),
+  teamId: integer("team_id")
+    .notNull()
+    .references(() => teams.id, { onDelete: "cascade" }),
+  gameId: integer("game_id")
+    .notNull()
+    .references(() => games.id, { onDelete: "cascade" }),
+  type: text("type", { enum: ["team", "game"] }).notNull(), // "team" or "game" chat
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -68,7 +73,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
-  role: text("role", { enum: ["user", "admin"] }).default("user").notNull(), // Added role
+  role: text("role", { enum: ["user", "admin", "judge"] }).default("user").notNull(), // Added judge role
   hashedPassword: text("hashed_password"), // Added hashedPassword column
 });
 
@@ -116,14 +121,14 @@ export const verificationTokens = pgTable(
   })
 );
 
-export const questionMessages = pgTable("question_messages", {
+export const playerAdminMessages = pgTable("player_admin_messages", {
   id: serial("id").primaryKey(),
   senderId: text("sender_id")
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    .references(() => users.id, { onDelete: "cascade" }), // Can be admin or player
   recipientId: text("recipient_id")
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    .references(() => users.id, { onDelete: "cascade" }), // Can be admin or player
   message: text("message").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

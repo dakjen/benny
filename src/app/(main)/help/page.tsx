@@ -25,12 +25,20 @@ export default function HelpPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [localPlayerId, setLocalPlayerId] = useState<number | null>(null);
+
+  useEffect(() => {
+    // For regular players, get info from localStorage
+    if (!session?.user) {
+      setLocalPlayerId(Number(localStorage.getItem("playerId")));
+    }
+  }, [session]);
 
   // Fetch players for admin messaging
   useEffect(() => {
-    if (session?.user?.role === "admin") {
+    if (session?.user?.role === "admin" || session?.user?.role === "judge") {
       const fetchPlayers = async () => {
-        const response = await fetch("/api/players"); // Need to create this API route
+        const response = await fetch("/api/players");
         const data = await response.json();
         setPlayers(data);
       };
@@ -40,32 +48,56 @@ export default function HelpPage() {
 
   // Fetch messages for chat
   useEffect(() => {
-    if (session) {
-      const recipientId = session.user.role === "admin" ? selectedPlayer?.id : "admin"; // Assuming admin has a fixed ID or is identified by role
-      if (!recipientId) return;
+    const fetchMessages = async () => {
+      let currentRecipientId: string | null = null;
+      let currentSenderId: string | null = null;
 
-      const fetchMessages = async () => {
-        const response = await fetch(`/api/question-messages?recipientId=${recipientId}`);
-        const data = await response.json();
-        setMessages(data);
-      };
-      fetchMessages();
-    }
-  }, [session, selectedPlayer]);
+      if (session?.user?.role === "admin" || session?.user?.role === "judge") {
+        if (selectedPlayer) {
+          currentRecipientId = selectedPlayer.id.toString();
+          currentSenderId = session.user.id;
+        }
+      } else if (localPlayerId) {
+        currentRecipientId = session?.user?.id || "admin"; // Player messages admin
+        currentSenderId = localPlayerId.toString();
+      }
+
+      if (!currentRecipientId || !currentSenderId) return;
+
+      const response = await fetch(`/api/player-admin-messages?senderId=${currentSenderId}&recipientId=${currentRecipientId}`);
+      const data = await response.json();
+      setMessages(data);
+    };
+    fetchMessages();
+  }, [session, selectedPlayer, localPlayerId]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() === "") return;
 
-    const recipientId = session?.user?.role === "admin" ? selectedPlayer?.id : "admin";
+    let currentRecipientId: string | null = null;
+    let currentSenderId: string | null = null;
 
-    const response = await fetch("/api/question-messages", {
+    if (session?.user?.role === "admin" || session?.user?.role === "judge") {
+      if (selectedPlayer) {
+        currentRecipientId = selectedPlayer.id.toString();
+        currentSenderId = session.user.id;
+      }
+    } else if (localPlayerId) {
+      currentRecipientId = session?.user?.id || "admin"; // Player messages admin
+      currentSenderId = localPlayerId.toString();
+    }
+
+    if (!currentRecipientId || !currentSenderId) return;
+
+    const response = await fetch("/api/player-admin-messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        recipientId,
+        senderId: currentSenderId,
+        recipientId: currentRecipientId,
         message,
       }),
     });
@@ -74,14 +106,27 @@ export default function HelpPage() {
       const newMessage = await response.json();
       setMessages((prevMessages) => [...prevMessages, newMessage]);
       setMessage("");
+    } else {
+      console.error("Failed to send message");
     }
   };
 
-  if (session?.user?.role === "admin") {
+  // Helper to get sender name
+  const getSenderName = (senderId: string) => {
+    if (session?.user?.id === senderId) return session.user.name;
+    const player = players.find(p => p.id.toString() === senderId);
+    if (player) return player.name;
+    // Fallback for admin if player is not found (e.g., if admin is the sender)
+    if (senderId === "admin") return "Admin"; // Assuming "admin" is a placeholder for admin's ID
+    return "Unknown";
+  };
+
+
+  if (session?.user?.role === "admin" || session?.user?.role === "judge") {
     return (
       <div className="flex flex-col h-full bg-card text-foreground">
         <header className="bg-background p-4 text-center z-10 shadow-md">
-          <h1 className="text-2xl font-permanent-marker">Admin Help Chat</h1>
+          <h1 className="text-2xl font-permanent-marker">Admin/Judge Help Chat</h1>
         </header>
         <div className="flex flex-1">
           <div className="w-1/3 border-r border-border">
@@ -117,6 +162,7 @@ export default function HelpPage() {
                         : "bg-secondary rounded-bl-none"
                     }`}
                   >
+                    <p className="font-bold text-sm">{getSenderName(msg.senderId)}</p>
                     <p>{msg.message}</p>
                   </div>
                 </div>
@@ -153,17 +199,18 @@ export default function HelpPage() {
           <div
             key={msg.id}
             className={`flex items-end space-x-3 ${
-              msg.senderId === session.user.id ? "flex-row-reverse" : ""
+              msg.senderId === localPlayerId?.toString() ? "flex-row-reverse" : ""
             }`}
           >
             <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0"></div>
             <div
               className={`p-3 rounded-2xl shadow ${
-                msg.senderId === session.user.id
+                msg.senderId === localPlayerId?.toString()
                   ? "bg-primary rounded-br-none"
                   : "bg-secondary rounded-bl-none"
               }`}
             >
+              <p className="font-bold text-sm">{getSenderName(msg.senderId)}</p>
               <p>{msg.message}</p>
             </div>
           </div>

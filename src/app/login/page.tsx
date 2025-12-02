@@ -1,9 +1,9 @@
-import { SignIn } from "@clerk/nextjs"; // Import SignIn
+import { LoginForm } from "@/components/LoginForm"; // Import LoginForm
 
 export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <SignIn />
+      <LoginForm /> {/* Use LoginForm component */}
     </div>
   );
 }

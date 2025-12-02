@@ -1,12 +1,12 @@
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server"; // Import Clerk's auth
+import { auth } from "@/auth"; // Import auth from your NextAuth.js configuration
 
 export async function GET(request: Request) {
   try {
     const session = await auth();
-    if (!session || (session.sessionClaims?.publicMetadata as { role?: string })?.role !== "admin") {
+    if (!session || session.user?.role !== "admin") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 

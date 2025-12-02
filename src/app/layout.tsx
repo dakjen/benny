@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope, Permanent_Marker } from "next/font/google";
 import "./globals.css";
-import { ClerkProvider } from "@clerk/nextjs"; // Import ClerkProvider
+import { AuthProvider } from "@/components/AuthProvider"; // Import AuthProvider
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -44,11 +44,11 @@ export default function RootLayout({
         className={`${manrope.variable} ${permanentMarker.variable} font-sans`}
         style={{ height: "100%", overflow: "hidden" }}
       >
-        <ClerkProvider> {/* Replaced AuthProvider with ClerkProvider */}
+        <AuthProvider> {/* Wrap children with AuthProvider */}
           <div style={{ display: "flex", height: "100%", flex: 1 }}>
             {children}
           </div>
-        </ClerkProvider>
+        </AuthProvider>
       </body>
     </html>
   );

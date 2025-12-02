@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server"; // Import Clerk's auth
+import { auth } from "@/auth"; // Import auth from your NextAuth.js configuration
 import { redirect } from "next/navigation";
 
 export default async function AdminLayout({
@@ -8,7 +8,8 @@ export default async function AdminLayout({
 }) {
   const session = await auth();
 
-  if (!session || (session.sessionClaims?.publicMetadata as { role?: string })?.role !== "admin") {
+  // Check if user is authenticated and has the 'admin' role
+  if (!session || session.user?.role !== "admin") {
     redirect("/unauthorized");
   }
 

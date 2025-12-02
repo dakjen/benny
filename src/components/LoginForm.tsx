@@ -25,7 +25,7 @@ export function LoginForm() {
     if (result?.error) {
       setError(result.error);
     } else {
-      router.push("/dashboard"); // Redirect to dashboard on successful login
+      router.push("/chat"); // Redirect to chat on successful login
     }
   };
 

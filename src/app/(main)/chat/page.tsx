@@ -17,6 +17,13 @@ type Message = {
 type Player = {
   id: number;
   name: string;
+  teamId: number; // Add teamId to Player type
+};
+
+type Team = {
+  id: number;
+  name: string;
+  gameId: number;
 };
 
 export default function ChatPage() {
@@ -29,6 +36,7 @@ export default function ChatPage() {
   const [localTeamId, setLocalTeamId] = useState<number | null>(null);
   const [localGameId, setLocalGameId] = useState<number | null>(null);
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
+  const [allTeams, setAllTeams] = useState<Team[]>([]); // New state for all teams
 
   useEffect(() => {
     // For regular players, get info from localStorage
@@ -41,12 +49,16 @@ export default function ChatPage() {
   }, [session]);
 
   useEffect(() => {
-    const fetchAllPlayers = async () => {
-      const response = await fetch("/api/players");
-      const data = await response.json();
-      setAllPlayers(data);
+    const fetchData = async () => {
+      const playersResponse = await fetch("/api/players");
+      const playersData = await playersResponse.json();
+      setAllPlayers(playersData);
+
+      const teamsResponse = await fetch("/api/teams");
+      const teamsData = await teamsResponse.json();
+      setAllTeams(teamsData);
     };
-    fetchAllPlayers();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -54,18 +66,11 @@ export default function ChatPage() {
       let currentTeamId = localTeamId;
       let currentGameId = localGameId;
 
-      // If admin or judge, they can see all chats, so we need to decide which team/game to show
-      // For now, let's assume they see all messages for all teams/games
-      // This logic will need to be refined based on how admin/judge selects which chat to view
       if (session?.user?.role === "admin" || session?.user?.role === "judge") {
-        // For now, let's just fetch all messages for all teams/games
-        // This will be updated later when we implement admin/judge chat selection
-        const response = await fetch(`/api/direct-messages?type=${activeTab}`);
-        const data = await response.json();
-        setChatMessages(data);
+        // Admin/Judge chat selection is under development
+        setChatMessages([]); // Clear messages for now
         return;
       }
-
 
       if ((activeTab === "team" && currentTeamId) || (activeTab === "game" && currentGameId)) {
         const url = `/api/direct-messages?type=${activeTab}&${activeTab}Id=${activeTab === "team" ? currentTeamId : currentGameId}`;
@@ -85,15 +90,12 @@ export default function ChatPage() {
     let currentTeamId = localTeamId;
     let currentGameId = localGameId;
 
-    // If admin or judge, they are sending messages as themselves, not as a player
     if (session?.user?.role === "admin" || session?.user?.role === "judge") {
-      senderName = session.user.name; // Admin/Judge name
-      // For now, we need to decide which team/game they are sending to
-      // This will be updated later when we implement admin/judge chat selection
-      currentTeamId = 1; // Placeholder
-      currentGameId = 1; // Placeholder
+      // Admin/Judge chat selection is under development, cannot send messages yet
+      console.warn("Admin/Judge chat selection is under development. Cannot send messages yet.");
+      setMessage("");
+      return;
     }
-
 
     if (!senderName || !currentTeamId || !currentGameId) return;
 
@@ -120,11 +122,33 @@ export default function ChatPage() {
     }
   };
 
-  // Helper to get player name from ID
-  const getPlayerName = (senderId: number) => {
+  // Helper to get player name from ID and format based on chat type
+  const getSenderDisplayName = (senderId: number) => {
     const player = allPlayers.find(p => p.id === senderId);
-    return player ? player.name : "Unknown";
+    if (!player) return "Unknown";
+
+    if (activeTab === "team") {
+      return player.name; // Display username for team chat
+    } else if (activeTab === "game") {
+      const team = allTeams.find(t => t.id === player.teamId);
+      return team ? `${team.name}: ${player.name}` : player.name; // Display team name: username for game chat
+    }
+    return player.name;
   };
+
+  if (session?.user?.role === "admin" || session?.user?.role === "judge") {
+    return (
+      <div className="flex flex-col h-full bg-card text-foreground">
+        <header className="bg-background p-4 text-center z-10 shadow-md">
+          <h1 className="text-2xl font-permanent-marker">Chat (Admin/Judge View)</h1>
+        </header>
+        <div className="flex-1 p-4 text-center">
+          <p className="text-lg mt-4">Chat selection for Admin/Judge is under development.</p>
+          <p className="text-md mt-2">You will be able to select a specific team or game chat to view and participate in here.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-card text-foreground">
@@ -173,7 +197,7 @@ export default function ChatPage() {
                     : "bg-secondary rounded-bl-none"
                 }`}
               >
-                <p className="font-bold text-sm">{getPlayerName(msg.sender)}</p>
+                <p className="font-bold text-sm">{getSenderDisplayName(msg.sender)}</p>
                 <p>{msg.message}</p>
               </div>
             </div>

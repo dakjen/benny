@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   const playerId = searchParams.get("playerId"); // For fetching messages for a specific player
 
   if (!type) {
-    return NextResponse.json({ message: "Chat type is required." }, { status: 400 });
+    return NextResponse.json([], { status: 200 }); // Return empty array if type is missing
   }
 
   try {
@@ -36,19 +36,13 @@ export async function GET(request: Request) {
         .where(eq(directMessages.sender, playerId)) // Assuming sender is player ID
         .orderBy(directMessages.createdAt);
     } else {
-      return NextResponse.json(
-        { message: "Invalid chat type or missing ID." },
-        { status: 400 }
-      );
+      return NextResponse.json([], { status: 200 }); // Return empty array for invalid chat type or missing ID
     }
 
     return NextResponse.json(messages, { status: 200 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
-      { message: "An error occurred while fetching messages." },
-      { status: 500 }
-    );
+    return NextResponse.json([], { status: 500 }); // Return empty array on server error
   }
 }
 

@@ -25,7 +25,7 @@ export default function HomePage() {
     fetchTeams();
   }, []);
 
-  const handleEnterGame = (e: React.FormEvent) => {.
+  const handleEnterGame = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedTeam.trim() === "" || playerName.trim() === "") {
       // Basic validation

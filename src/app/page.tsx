@@ -19,12 +19,13 @@ export default function HomePage() {
     const fetchTeams = async () => {
       const response = await fetch("/api/teams");
       const data = await response.json();
+      console.log("teams data", data); // Add this line
       setTeams(data);
     };
     fetchTeams();
   }, []);
 
-  const handleEnterGame = (e: React.FormEvent) => {
+  const handleEnterGame = (e: React.FormEvent) => {.
     e.preventDefault();
     if (selectedTeam.trim() === "" || playerName.trim() === "") {
       // Basic validation

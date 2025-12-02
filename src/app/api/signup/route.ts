@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { users } from '@/db/schema';
 import bcrypt from 'bcryptjs';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: Request) {
   try {
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
 
     // Insert new user into the database
     const newUser = await db.insert(users).values({
+      id: uuidv4(),
       name,
       email,
       hashedPassword: hashedPassword, // Use hashedPassword here

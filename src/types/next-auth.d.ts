@@ -1,5 +1,5 @@
 // src/types/next-auth.d.ts
-import NextAuth from "next-auth";
+import NextAuth, { DefaultUser } from "next-auth";
 
 declare module "next-auth" {
   interface Session {
@@ -10,6 +10,10 @@ declare module "next-auth" {
       image?: string | null;
       role?: string | null; // Add the role property
     };
+  }
+
+  interface User extends DefaultUser {
+    role?: string | null;
   }
 }
 

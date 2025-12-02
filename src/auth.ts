@@ -1,12 +1,12 @@
 // src/auth.ts
-import NextAuth from "next-auth";
+import NextAuth, { AuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { db } from "./db"; // Your Drizzle DB instance
 import { users, accounts, sessions, verificationTokens } from "./db/schema"; // Your Drizzle schema
 import bcrypt from "bcryptjs";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authOptions: AuthOptions = {
   adapter: DrizzleAdapter(db, {
     usersTable: users,
     accountsTable: accounts,
@@ -74,4 +74,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     },
   },
-});
+};
+
+export const { handlers, auth, signIn, signOut } = NextAuth(authOptions);

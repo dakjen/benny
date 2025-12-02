@@ -68,8 +68,8 @@ export function LoginForm() {
       </button>
       <p className="text-sm text-center">
         Don't have an account?{" "}
-        <Link href="/signup" className="font-medium text-primary hover:underline">
-          Sign up
+        <Link href="/create-account" className="font-medium text-primary hover:underline">
+          Create an account
         </Link>
       </p>
     </form>

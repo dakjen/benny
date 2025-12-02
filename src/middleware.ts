@@ -1,7 +1,7 @@
 // src/middleware.ts
 import { auth } from "@/auth"; // Import auth from your NextAuth.js configuration
 
-export default auth((req) => {
+export default auth((req: any) => {
   // Example: Protect /admin routes
   if (req.nextUrl.pathname.startsWith("/admin")) {
     // If not authenticated, redirect to login

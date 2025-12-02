@@ -7,7 +7,7 @@ export default withAuth(
     const url = req.nextUrl.pathname;
     const isAdminRoute = url.startsWith("/admin");
 
-    if (isAdminRoute && req.auth?.user?.role !== "admin") {
+    if (isAdminRoute && req.nextauth.token?.role !== "admin") {
       return Response.redirect(new URL("/unauthorized", req.url));
     }
   },

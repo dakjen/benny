@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageSquare, HelpCircle, Info, Users } from "lucide-react";
+import { MessageSquare, HelpCircle, Info, Users, LayoutDashboard } from "lucide-react";
 import { useSession } from "next-auth/react"; // Import useSession from NextAuth.js
 
 export function BottomNav() {
@@ -15,8 +15,9 @@ export function BottomNav() {
     { href: "/help", label: "Help", icon: Info },
   ];
 
-  // Conditionally add the admin link if the user is an admin
+  // Conditionally add the admin links if the user is an admin
   if (session?.user?.role === "admin") {
+    links.push({ href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard });
     links.push({ href: "/admin/users", label: "Manage Users", icon: Users });
   }
 

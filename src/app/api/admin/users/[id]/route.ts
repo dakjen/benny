@@ -2,21 +2,22 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth"; // Import auth from your NextAuth.js configuration
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/auth";
 
-type RouteContext = { params: Promise<{ id: string }> }; // Explicitly define params as a Promise
+type RouteContext = { params: Promise<{ id: string }> };
 
 export async function PUT(
   request: NextRequest,
   context: RouteContext
 ) {
   try {
-    const session = await auth();
+    const session = await getServerSession(authOptions);
     if (!session || session.user?.role !== "admin") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await context.params; // Await the promise
+    const { id } = await context.params;
     const { role } = await request.json();
 
     if (!role) {
@@ -26,7 +27,7 @@ export async function PUT(
       );
     }
 
-    await db.update(users).set({ role }).where(eq(users.id, id)); // Removed parseInt(id)
+    await db.update(users).set({ role }).where(eq(users.id, id));
 
     return NextResponse.json(
       { message: "User role updated successfully." },
@@ -46,17 +47,17 @@ export async function GET(
   context: RouteContext
 ) {
   try {
-    const session = await auth();
+    const session = await getServerSession(authOptions);
     if (!session || session.user?.role !== "admin") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await context.params; // Await the promise
+    const { id } = await context.params;
 
     const user = await db
       .select()
       .from(users)
-      .where(eq(users.id, id)); // Removed parseInt(id)
+      .where(eq(users.id, id));
 
     if (user.length === 0) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });

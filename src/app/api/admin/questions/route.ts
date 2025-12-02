@@ -3,11 +3,12 @@ import { questions } from "@/db/schema";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth";
 import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm"; // Import eq
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session || session.user?.role !== "admin") {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    return NextResponse.json([], { status: 200 }); // Return empty array for unauthorized
   }
 
   try {
@@ -21,13 +22,10 @@ export async function GET(request: Request) {
       allQuestions = await db.select().from(questions);
     }
     
-    return NextResponse.json(allQuestions, { status: 200 });
+    return NextResponse.json(allQuestions || [], { status: 200 }); // Ensure array is returned
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
-      { message: "An error occurred while fetching questions." },
-      { status: 500 }
-    );
+    return NextResponse.json([], { status: 500 }); // Return empty array on server error
   }
 }
 

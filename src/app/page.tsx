@@ -74,7 +74,7 @@ export default function HomePage() {
         alt="Old Ben"
         width={200}
         height={200}
-        className="mb-4 rounded-full" // Added some styling
+        className="mb-4" // Removed rounded-full
       />
       <h1 className="text-4xl font-permanent-marker mb-2">Benjamin's 25th Birthday</h1>
       <p className="text-lg font-manrope italic">the frontal lobe develops.</p>
@@ -90,7 +90,7 @@ export default function HomePage() {
           <option value="" disabled>Select a team</option>
           {teams.map((team) => (
             <option key={team.id} value={team.id}>
-              {team.name}
+                {team.name}
             </option>
           ))}
         </select>

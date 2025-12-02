@@ -34,7 +34,7 @@ type Game = {
 
 export default function ChatPage() {
   const { data: session } = useSession();
-  const [activeTab, setActiveTab] = useState<"team" | "game">("team");
+  const [activeTab, setActiveTab] = useState<"team" | "game">("game"); // Default to game chat for admin
   const [message, setMessage] = useState("");
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [localPlayerId, setLocalPlayerId] = useState<number | null>(null);
@@ -47,7 +47,7 @@ export default function ChatPage() {
 
   // Admin/Judge specific states
   const [selectedAdminGameId, setSelectedAdminGameId] = useState<number | null>(null);
-  const [selectedAdminTeamId, setSelectedAdminTeamId] = useState<number | null>(null);
+  const [selectedTeamForAdminChat, setSelectedTeamForAdminChat] = useState<Team | null>(null);
 
 
   useEffect(() => {
@@ -83,21 +83,35 @@ export default function ChatPage() {
       let currentGameId = localGameId;
 
       if (session?.user?.role === "admin" || session?.user?.role === "judge") {
-        currentTeamId = selectedAdminTeamId;
         currentGameId = selectedAdminGameId;
+        if (activeTab === "team" && selectedTeamForAdminChat) {
+          currentTeamId = selectedTeamForAdminChat.id;
+        } else if (activeTab === "game") {
+          currentTeamId = null; // Game chat doesn't have a specific team ID
+        }
       }
 
-      if ((activeTab === "team" && currentTeamId) || (activeTab === "game" && currentGameId)) {
-        const url = `/api/direct-messages?type=${activeTab}&${activeTab}Id=${activeTab === "team" ? currentTeamId : currentGameId}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        setChatMessages(data);
+      if (currentGameId) {
+        let url = "";
+        if (activeTab === "game") {
+          url = `/api/direct-messages?type=game&gameId=${currentGameId}`;
+        } else if (activeTab === "team" && currentTeamId) {
+          url = `/api/direct-messages?type=team&teamId=${currentTeamId}`;
+        }
+
+        if (url) {
+          const response = await fetch(url);
+          const data = await response.json();
+          setChatMessages(data);
+        } else {
+          setChatMessages([]);
+        }
       } else {
-        setChatMessages([]); // Clear messages if no selection for admin/judge
+        setChatMessages([]); // Clear messages if no game selected for admin/judge
       }
     };
     fetchMessages();
-  }, [activeTab, localTeamId, localGameId, session, selectedAdminGameId, selectedAdminTeamId]);
+  }, [activeTab, localTeamId, localGameId, session, selectedAdminGameId, selectedTeamForAdminChat]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,14 +120,19 @@ export default function ChatPage() {
     let senderName = localPlayerName;
     let currentTeamId = localTeamId;
     let currentGameId = localGameId;
+    let messageType = activeTab;
 
     if (session?.user?.role === "admin" || session?.user?.role === "judge") {
       senderName = session.user.name; // Admin/Judge name
-      currentTeamId = selectedAdminTeamId;
       currentGameId = selectedAdminGameId;
+      if (activeTab === "team" && selectedTeamForAdminChat) {
+        currentTeamId = selectedTeamForAdminChat.id;
+      } else if (activeTab === "game") {
+        currentTeamId = null; // Game chat doesn't have a specific team ID
+      }
     }
 
-    if (!senderName || !currentTeamId || !currentGameId) return;
+    if (!senderName || !currentGameId || (messageType === "team" && !currentTeamId)) return;
 
     const response = await fetch("/api/direct-messages", {
       method: "POST",
@@ -123,9 +142,9 @@ export default function ChatPage() {
       body: JSON.stringify({
         name: senderName,
         message,
-        teamId: currentTeamId,
+        teamId: currentTeamId, // Will be null for game chat
         gameId: currentGameId,
-        type: activeTab,
+        type: messageType,
       }),
     });
 
@@ -153,19 +172,22 @@ export default function ChatPage() {
   };
 
   if (session?.user?.role === "admin" || session?.user?.role === "judge") {
+    const filteredTeams = allTeams.filter(team => team.gameId === selectedAdminGameId);
+
     return (
       <div className="flex flex-col h-full bg-card text-foreground">
         <header className="bg-background p-4 text-center z-10 shadow-md">
           <h1 className="text-2xl font-permanent-marker">Chat (Admin/Judge View)</h1>
         </header>
         <div className="p-4">
-          <h2 className="text-xl font-bold mb-4">Select Chat to View</h2>
+          <h2 className="text-xl font-bold mb-4">Select Game</h2>
           <div className="flex space-x-4 mb-4">
             <select
               value={selectedAdminGameId || ""}
               onChange={(e) => {
                 setSelectedAdminGameId(Number(e.target.value));
-                setSelectedAdminTeamId(null); // Reset team when game changes
+                setSelectedTeamForAdminChat(null); // Reset team when game changes
+                setActiveTab("game"); // Default to game chat when game changes
               }}
               className="flex-1 bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
             >
@@ -176,27 +198,25 @@ export default function ChatPage() {
                 </option>
               ))}
             </select>
-            <select
-              value={selectedAdminTeamId || ""}
-              onChange={(e) => setSelectedAdminTeamId(Number(e.target.value))}
-              className="flex-1 bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
-              disabled={!selectedAdminGameId}
-            >
-              <option value="" disabled>Select a Team</option>
-              {allTeams
-                .filter((team) => team.gameId === selectedAdminGameId)
-                .map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-            </select>
           </div>
 
-          {(selectedAdminGameId && selectedAdminTeamId) ? (
+          {selectedAdminGameId ? (
             <>
               <div className="bg-card z-10 shadow-md">
                 <div className="flex">
+                  <button
+                    className={`flex-1 py-3 text-center font-bold ${
+                      activeTab === "game"
+                        ? "border-b-2 border-primary text-primary"
+                        : "text-gray-500"
+                    }`}
+                    onClick={() => {
+                      setActiveTab("game");
+                      setSelectedTeamForAdminChat(null); // Clear selected team when viewing game chat
+                    }}
+                  >
+                    Game Chat
+                  </button>
                   <button
                     className={`flex-1 py-3 text-center font-bold ${
                       activeTab === "team"
@@ -205,64 +225,83 @@ export default function ChatPage() {
                     }`}
                     onClick={() => setActiveTab("team")}
                   >
-                    Team Chat
-                  </button>
-                  <button
-                    className={`flex-1 py-3 text-center font-bold ${
-                      activeTab === "game"
-                        ? "border-b-2 border-primary text-primary"
-                        : "text-gray-500"
-                    }`}
-                    onClick={() => setActiveTab("game")}
-                  >
-                    Game Chat
+                    Team Chats
                   </button>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4">
-                <div className="space-y-4">
-                  {chatMessages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`flex items-end space-x-3 ${
-                        msg.sender === localPlayerId ? "flex-row-reverse" : ""
-                      }`}
-                    >
-                      <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0"></div>
-                      <div
-                        className={`p-3 rounded-2xl shadow ${
-                          msg.sender === localPlayerId
-                            ? "bg-primary rounded-br-none"
-                            : "bg-secondary rounded-bl-none"
+              {activeTab === "team" && (
+                <div className="mt-4 border-b border-border pb-4">
+                  <h3 className="text-lg font-bold mb-2">Teams in this Game:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {filteredTeams.map((team) => (
+                      <button
+                        key={team.id}
+                        onClick={() => setSelectedTeamForAdminChat(team)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium ${
+                          selectedTeamForAdminChat?.id === team.id
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                         }`}
                       >
-                        <p className="font-bold text-sm">{getSenderDisplayName(msg.sender)}</p>
-                        <p>{msg.message}</p>
-                      </div>
-                    </div>
-                  ))}
+                        {team.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <form onSubmit={handleSendMessage} className="bg-card p-4 border-t border-border flex items-center">
-                <input
-                  type="text"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  className="flex-1 bg-input text-card-foreground border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-                <button
-                  type="submit"
-                  className="ml-4 bg-primary text-primary-foreground rounded-full p-3 hover:bg-primary/90 transition-colors"
-                >
-                  <Send className="h-5 w-5" />
-                </button>
-              </form>
+              {(activeTab === "game" || (activeTab === "team" && selectedTeamForAdminChat)) ? (
+                <>
+                  <div className="flex-1 overflow-y-auto p-4">
+                    <div className="space-y-4">
+                      {chatMessages.map((msg) => (
+                        <div
+                          key={msg.id}
+                          className={`flex items-end space-x-3 ${
+                            msg.sender === localPlayerId ? "flex-row-reverse" : ""
+                          }`}
+                        >
+                          <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0"></div>
+                          <div
+                            className={`p-3 rounded-2xl shadow ${
+                              msg.sender === localPlayerId
+                                ? "bg-primary rounded-br-none"
+                                : "bg-secondary rounded-bl-none"
+                            }`}
+                          >
+                            <p className="font-bold text-sm">{getSenderDisplayName(msg.sender)}</p>
+                            <p>{msg.message}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSendMessage} className="bg-card p-4 border-t border-border flex items-center">
+                    <input
+                      type="text"
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      placeholder="Type a message..."
+                      className="flex-1 bg-input text-card-foreground border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                    <button
+                      type="submit"
+                      className="ml-4 bg-primary text-primary-foreground rounded-full p-3 hover:bg-primary/90 transition-colors"
+                    >
+                      <Send className="h-5 w-5" />
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <p className="text-center text-gray-500 mt-8">
+                  {activeTab === "team" ? "Please select a team to view their chat." : "Select a game to view chats."}
+                </p>
+              )}
             </>
           ) : (
-            <p className="text-center text-gray-500 mt-8">Please select a game and a team to view their chat.</p>
+            <p className="text-center text-gray-500 mt-8">Please select a game to view chats.</p>
           )}
         </div>
       </div>

@@ -7,22 +7,6 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 
 export const authOptions: AuthOptions = {
-  // adapter: DrizzleAdapter(db, {
-  //   usersTable: users,
-  //   accountsTable: accounts,
-  //   sessionsTable: sessions,
-  //   verificationTokensTable: verificationTokens,
-  // }),
-  // session: {
-  //   strategy: "jwt",
-  // },
-  pages: {
-    signIn: "/login",
-    signOut: "/logout",
-    error: "/login", // Error code passed in query string as ?error=
-    verifyRequest: "/verify-request", // (used for check email message)
-    newUser: "/signup", // New users will be directed here on first sign in (leave this out if you want to redirect to the default start page)
-  },
   providers: [
     Credentials({
       name: "Credentials",
@@ -43,22 +27,6 @@ export const authOptions: AuthOptions = {
       },
     }),
   ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-      }
-      return session;
-    },
-  },
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth(authOptions);

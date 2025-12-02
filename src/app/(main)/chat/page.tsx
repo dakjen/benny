@@ -29,7 +29,6 @@ type Team = {
 type Game = {
   id: number;
   name: string;
-  id: number;
 };
 
 export default function ChatPage() {
@@ -123,7 +122,7 @@ export default function ChatPage() {
     let messageType = activeTab;
 
     if (session?.user?.role === "admin" || session?.user?.role === "judge") {
-      senderName = session.user.name; // Admin/Judge name
+      senderName = session.user.name ?? ""; // Provide a default empty string if name is null or undefined
       currentGameId = selectedAdminGameId;
       if (activeTab === "team" && selectedTeamForAdminChat) {
         currentTeamId = selectedTeamForAdminChat.id;

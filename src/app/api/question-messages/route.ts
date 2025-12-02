@@ -1,6 +1,6 @@
 // src/app/api/question-messages/route.ts
 import { db } from "@/db";
-import { questionMessages } from "@/db/schema";
+import { playerAdminMessages } from "@/db/schema";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth";
 import { eq, or, and } from "drizzle-orm";
@@ -21,20 +21,20 @@ export async function GET(request: Request) {
 
   const messages = await db
     .select()
-    .from(questionMessages)
+    .from(playerAdminMessages)
     .where(
       or(
         and(
-          eq(questionMessages.senderId, session.user.id),
-          eq(questionMessages.recipientId, recipientId)
+          eq(playerAdminMessages.senderId, session.user.id),
+          eq(playerAdminMessages.recipientId, recipientId)
         ),
         and(
-          eq(questionMessages.senderId, recipientId),
-          eq(questionMessages.recipientId, session.user.id)
+          eq(playerAdminMessages.senderId, recipientId),
+          eq(playerAdminMessages.recipientId, session.user.id)
         )
       )
     )
-    .orderBy(questionMessages.createdAt);
+    .orderBy(playerAdminMessages.createdAt);
 
   return NextResponse.json(messages, { status: 200 });
 }
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
   }
 
   const newMessage = await db
-    .insert(questionMessages)
+    .insert(playerAdminMessages)
     .values({
       senderId: session.user.id,
       recipientId,

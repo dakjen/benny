@@ -18,11 +18,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { questionText, category, expectedAnswer } = await request.json();
+    const { questionText, category, expectedAnswer, gameId, points } = await request.json();
 
-    if (!questionText) {
+    if (!questionText || !gameId || points === undefined) {
       return NextResponse.json(
-        { message: "Question text is required." },
+        { message: "Question text, gameId, and points are required." },
         { status: 400 }
       );
     }
@@ -33,6 +33,8 @@ export async function POST(request: Request) {
         questionText,
         category,
         expectedAnswer,
+        gameId,
+        points,
       })
       .returning();
 

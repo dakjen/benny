@@ -216,13 +216,13 @@ export default function QuestionsPage() {
           <div
             key={msg.id}
             className={`flex items-end space-x-3 ${
-              msg.senderId === session.user.id ? "flex-row-reverse" : ""
+              session && msg.senderId === session.user.id ? "flex-row-reverse" : ""
             }`}
           >
             <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0"></div>
             <div
               className={`p-3 rounded-2xl shadow ${
-                msg.senderId === session.user.id
+                session && msg.senderId === session.user.id
                   ? "bg-primary rounded-br-none"
                   : "bg-secondary rounded-bl-none"
               }`}

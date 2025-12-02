@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     const newMessage = await db
       .insert(directMessages)
       .values({
-        sender: player.id, // Store player ID as sender
+        sender: String(player.id), // Store player ID as sender, converted to string
         message,
         teamId,
         gameId,

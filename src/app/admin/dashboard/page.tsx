@@ -18,9 +18,14 @@ export default async function AdminDashboardPage() {
         <div className="p-6 rounded-lg shadow-md" style={{ backgroundColor: "#7fab61" }}>
           <h2 className="text-2xl font-bold mb-4">Users</h2>
           {isAdmin && (
-            <Link href="/admin/users">
-              <p className="text-primary hover:underline">Manage Users</p>
-            </Link>
+            <>
+              <Link href="/admin/users">
+                <p className="text-primary hover:underline">Manage Users</p>
+              </Link>
+              <Link href="/admin/games">
+                <p className="text-primary hover:underline mt-2">Manage Games & Teams</p>
+              </Link>
+            </>
           )}
         </div>
         <div className="p-6 rounded-lg shadow-md" style={{ backgroundColor: "#7fab61" }}>

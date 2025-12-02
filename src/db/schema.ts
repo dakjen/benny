@@ -134,3 +134,22 @@ export const playerAdminMessages = pgTable("player_admin_messages", {
     .notNull()
     .$defaultFn(() => new Date()),
 });
+
+export const submissions = pgTable("submissions", {
+  id: serial("id").primaryKey(),
+  playerId: integer("player_id")
+    .notNull()
+    .references(() => players.id, { onDelete: "cascade" }),
+  questionId: integer("question_id")
+    .notNull()
+    .references(() => questions.id, { onDelete: "cascade" }),
+  answerText: text("answer_text").notNull(),
+  status: text("status", { enum: ["pending", "graded"] }).notNull().default("pending"),
+  score: integer("score"), // Nullable, set after grading
+  submittedAt: timestamp("submitted_at", { withTimezone: true })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  gradedBy: text("graded_by") // User ID of the admin/judge who graded it
+    .references(() => users.id, { onDelete: "set null" }),
+  gradedAt: timestamp("graded_at", { withTimezone: true }), // Nullable, set after grading
+});

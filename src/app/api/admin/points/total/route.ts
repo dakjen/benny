@@ -5,19 +5,28 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session || session.user?.role !== "admin") {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const gameId = searchParams.get("gameId");
+
   try {
-    const result = await db
+    let query = db
       .select({
         totalPoints: sum(submissions.score),
       })
       .from(submissions)
       .where(eq(submissions.status, "graded"));
+
+    if (gameId) {
+      query = query.where(and(eq(submissions.status, "graded"), eq(submissions.gameId, Number(gameId))));
+    }
+
+    const result = await query;
 
     const totalPointsGranted = result[0]?.totalPoints ? Number(result[0].totalPoints) : 0;
 

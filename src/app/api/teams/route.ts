@@ -3,9 +3,17 @@ import { teams } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const gameId = searchParams.get("gameId");
+
   try {
-    const allTeams = await db.select().from(teams);
+    let allTeams;
+    if (gameId) {
+      allTeams = await db.select().from(teams).where(eq(teams.gameId, Number(gameId)));
+    } else {
+      allTeams = await db.select().from(teams);
+    }
     return NextResponse.json(allTeams, { status: 200 });
   } catch (error) {
     console.error(error);

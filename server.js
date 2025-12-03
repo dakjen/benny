@@ -16,8 +16,8 @@ app.prepare().then(() => {
 
   const io = new Server(httpServer);
 
-  // Export the io instance
-  module.exports.io = io;
+  // Store the io instance globally
+  globalThis.io = io;
 
   io.on("connection", (socket) => {
     console.log("a user connected");

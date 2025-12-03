@@ -41,8 +41,8 @@ export default function AdminQuestionsPage() {
     const response = await fetch("/api/admin/games");
     const data = await response.json();
     setGames(data);
-    if (data.length > 0) {
-      setSelectedGameId(data[0].id); // Select the first game by default
+    if (data.length === 1) { // Only select if there's exactly one game
+      setSelectedGameId(data[0].id);
     }
   };
 

@@ -7,10 +7,25 @@ export default async function AdminDashboardPage() {
   const isAdmin = session?.user?.role === "admin";
   const isJudge = session?.user?.role === "judge";
 
+  let defaultGameId: number | null = null;
+  try {
+    const gamesResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/admin/games`);
+    if (gamesResponse.ok) {
+      const gamesData = await gamesResponse.json();
+      if (gamesData.length === 1) {
+        defaultGameId = gamesData[0].id;
+      }
+    } else {
+      console.error("Failed to fetch games for default selection:", gamesResponse.status, gamesResponse.statusText);
+    }
+  } catch (error) {
+    console.error("Error fetching games for default selection:", error);
+  }
+
   let pendingSubmissionsCount = 0;
-  if (isAdmin || isJudge) {
+  if ((isAdmin || isJudge) && defaultGameId) { // Only fetch if a default game is selected
     try {
-      const response = await fetch(`${process.env.NEXTAUTH_URL}/api/admin/submissions/count`);
+      const response = await fetch(`${process.env.NEXTAUTH_URL}/api/admin/submissions/count?gameId=${defaultGameId}`);
       if (response.ok) {
         const data = await response.json();
         pendingSubmissionsCount = data.count;
@@ -23,9 +38,9 @@ export default async function AdminDashboardPage() {
   }
 
   let totalPointsGranted = 0;
-  if (isAdmin || isJudge) {
+  if ((isAdmin || isJudge) && defaultGameId) { // Only fetch if a default game is selected
     try {
-      const response = await fetch(`${process.env.NEXTAUTH_URL}/api/admin/points/total`);
+      const response = await fetch(`${process.env.NEXTAUTH_URL}/api/admin/points/total?gameId=${defaultGameId}`);
       if (response.ok) {
         const data = await response.json();
         totalPointsGranted = data.totalPoints;

@@ -29,8 +29,7 @@ export default function AdminUsersPage() {
 
   const [newPlayerName, setNewPlayerName] = useState("");
   const [newPlayerTeamId, setNewPlayerTeamId] = useState<number | null>(null);
-  const [newPlayerGameId, setNewPlayerGameId] = useState<number | null>(null);
-
+  const [newPlayerGameId, setNewPlayerGameId] = useState<number | null>(null); // Initialize with default game if only one exists
 
   const fetchUsersAndTeamsAndGames = async () => {
     try {
@@ -45,6 +44,10 @@ export default function AdminUsersPage() {
       const gamesResponse = await fetch("/api/admin/games");
       const gamesData = await gamesResponse.json();
       setGames(gamesData);
+
+      if (gamesData.length === 1) {
+        setNewPlayerGameId(gamesData[0].id); // Set default game if only one exists
+      }
 
     } catch (err: any) {
       setError(err.message);

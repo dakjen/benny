@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 
-// This import path might need adjustment based on actual project structure
-// Assuming server.js is at the root and this file is src/app/api/socket-emitter/route.ts
-const { io } = require("../../../../server"); 
+// Access the globally stored io instance
+const io = globalThis.io as any;
 
 export async function POST(request: Request) {
   try {

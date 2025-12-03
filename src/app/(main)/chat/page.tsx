@@ -217,7 +217,7 @@ export default function ChatPage() {
       }
 
       const messageData = {
-        sender: senderId, // Send sender ID
+        sender_id: senderId, // Send sender ID to match database column name
         sender_name: senderName, // Send sender name for display
         message_text: message, // Message content
         team_id: currentTeamId,

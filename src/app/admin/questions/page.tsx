@@ -38,13 +38,20 @@ export default function AdminQuestionsPage() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-  const fetchGames = async () => {
+  const searchParams = useSearchParams();
+
+  const fetchGames = async (gameIdFromUrl: string | null) => {
     const response = await fetch("/api/admin/games");
     const data = await response.json();
     setGames(data);
-    if (data.length === 1) { // Only select if there's exactly one game
-      setSelectedGameId(data[0].id);
+
+    let initialSelectedGameId: number | null = null;
+    if (gameIdFromUrl) {
+      initialSelectedGameId = Number(gameIdFromUrl);
+    } else if (data.length === 1) {
+      initialSelectedGameId = data[0].id;
     }
+    setSelectedGameId(initialSelectedGameId);
   };
 
   const fetchCategories = async (gameId: number) => {

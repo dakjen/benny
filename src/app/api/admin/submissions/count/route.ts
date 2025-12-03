@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { submissions } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { submissions, players } from "@/db/schema"; // Import players
+import { eq, and } from "drizzle-orm"; // Import and
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth";
@@ -15,13 +15,22 @@ export async function GET(request: Request) {
   const gameId = searchParams.get("gameId");
 
   try {
-    let query = db.select().from(submissions).where(eq(submissions.status, "pending"));
-
     if (gameId) {
-      query = query.where(and(eq(submissions.status, "pending"), eq(submissions.gameId, Number(gameId))));
+      // Join with players table to filter by gameId
+      const pendingSubmissions = await db
+        .select()
+        .from(submissions)
+        .innerJoin(players, eq(submissions.playerId, players.id))
+        .where(and(eq(submissions.status, "pending"), eq(players.gameId, Number(gameId))));
+
+      return NextResponse.json({ count: pendingSubmissions.length }, { status: 200 });
     }
 
-    const pendingSubmissions = await query;
+    // Original query if no gameId is provided
+    const pendingSubmissions = await db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.status, "pending"));
 
     return NextResponse.json({ count: pendingSubmissions.length }, { status: 200 });
   } catch (error) {

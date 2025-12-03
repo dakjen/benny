@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 // Access the globally stored io instance
-const io = globalThis.io as any;
+const io = globalThis.io;
 
 export async function POST(request: Request) {
   try {

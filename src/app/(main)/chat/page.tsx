@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Send } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { io } from "socket.io-client"; // Import socket.io-client
+import { io, type Socket } from "socket.io-client"; // Import socket.io-client and Socket type
 
 type Message = {
   id: number;
@@ -32,7 +32,7 @@ type Game = {
   name: string;
 };
 
-let socket; // Declare socket outside to persist across re-renders
+let socket: Socket; // Declare socket outside to persist across re-renders
 
 export default function ChatPage() {
   const { data: session } = useSession();

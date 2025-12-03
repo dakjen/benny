@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { submissions } from "@/db/schema";
-import { eq, sum } from "drizzle-orm";
+import { submissions, players } from "@/db/schema"; // Import players
+import { eq, sum, and } from "drizzle-orm"; // Import and
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth";
@@ -15,18 +15,29 @@ export async function GET(request: Request) {
   const gameId = searchParams.get("gameId");
 
   try {
-    let query = db
+    const conditions = [eq(submissions.status, "graded")];
+
+    if (gameId) {
+      // Join with players table to filter by gameId
+      const result = await db
+        .select({
+          totalPoints: sum(submissions.score),
+        })
+        .from(submissions)
+        .innerJoin(players, eq(submissions.playerId, players.id))
+        .where(and(eq(submissions.status, "graded"), eq(players.gameId, Number(gameId))));
+
+      const totalPointsGranted = result[0]?.totalPoints ? Number(result[0].totalPoints) : 0;
+      return NextResponse.json({ totalPoints: totalPointsGranted }, { status: 200 });
+    }
+
+    // Original query if no gameId is provided
+    const result = await db
       .select({
         totalPoints: sum(submissions.score),
       })
       .from(submissions)
-      .where(eq(submissions.status, "graded"));
-
-    if (gameId) {
-      query = query.where(and(eq(submissions.status, "graded"), eq(submissions.gameId, Number(gameId))));
-    }
-
-    const result = await query;
+      .where(and(...conditions));
 
     const totalPointsGranted = result[0]?.totalPoints ? Number(result[0].totalPoints) : 0;
 

@@ -97,10 +97,12 @@ export default function HelpPage() {
     let currentSenderId: string | null = null;
 
     if (session?.user?.role === "admin" || session?.user?.role === "judge") {
-      if (selectedPlayer && selectedAdminForSending) {
-        currentRecipientId = selectedPlayer.id.toString();
-        currentSenderId = selectedAdminForSending; // Admin sends as the selected identity
+      if (!selectedPlayer || !selectedAdminForSending) { // Ensure a player and sender identity are selected
+        console.error("Admin/Judge: Please select a player and your sending identity.");
+        return;
       }
+      currentRecipientId = selectedPlayer.id.toString();
+      currentSenderId = selectedAdminForSending; // Admin sends as the selected identity
     } else if (localPlayerId) {
       currentRecipientId = "all_admins"; // Player messages all admins
       currentSenderId = localPlayerId.toString();

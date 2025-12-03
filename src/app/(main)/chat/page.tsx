@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Send } from "lucide-react";
+import { Send, Bath, Bitcoin, Beef, BatteryWarning, Binoculars, BicepsFlexed, Bone, Brain } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { supabase } from "@/lib/supabase"; // Import Supabase client
 
@@ -33,6 +33,22 @@ type Game = {
   name: string;
 };
 
+const regularIcons = [Bath, Bitcoin, Beef, BatteryWarning, Binoculars, BicepsFlexed, Bone];
+const adminIcon = Brain;
+
+const getRandomIcon = (senderId: string, isAdminSender: boolean) => {
+  if (isAdminSender) {
+    return adminIcon;
+  }
+  // Simple hash function to get a consistent index
+  if (!senderId) {
+    return regularIcons[0];
+  }
+  const hash = senderId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const index = hash % regularIcons.length;
+  return regularIcons[index];
+};
+
 export default function ChatPage() {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<"team" | "game">("game"); // Default to game chat for admin
@@ -45,10 +61,29 @@ export default function ChatPage() {
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [allGames, setAllGames] = useState<Game[]>([]); // New state for all games
+  const [adminUsers, setAdminUsers] = useState<any[]>([]);
 
   // Admin/Judge specific states
   const [selectedAdminGameId, setSelectedAdminGameId] = useState<number | null>(null);
   const [selectedTeamForAdminChat, setSelectedTeamForAdminChat] = useState<Team | null>(null);
+
+  useEffect(() => {
+    const fetchAdminUsers = async () => {
+      try {
+        const response = await fetch("/api/admin/users");
+        if (response.ok) {
+          const usersData = await response.json();
+          const admins = usersData.filter((user: any) => user.role === "admin");
+          setAdminUsers(admins);
+        } else {
+          console.error("Failed to fetch admin users");
+        }
+      } catch (error) {
+        console.error("Error fetching admin users:", error);
+      }
+    };
+    fetchAdminUsers();
+  }, []);
 
 
   useEffect(() => {
@@ -78,10 +113,21 @@ export default function ChatPage() {
     const channel = supabase
       .channel('chat_messages')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        console.log('New message received:', payload.new);
         const newMessage = payload.new as Message;
         setChatMessages((prevMessages) => [...prevMessages, newMessage]);
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to chat_messages channel!');
+        }
+        if (status === 'CHANNEL_ERROR') {
+          console.error('There was an error subscribing to the chat_messages channel.');
+        }
+        if (status === 'TIMED_OUT') {
+          console.error('Subscription to chat_messages channel timed out.');
+        }
+      });
 
     // Fetch initial messages
     const fetchInitialMessages = async () => {
@@ -241,6 +287,10 @@ export default function ChatPage() {
     ]
   );
 
+  const isAdmin = (senderId: string) => {
+    return adminUsers.some(admin => admin.id === senderId);
+  };
+
   const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
   const isPlayer = localPlayerId !== null && !isAdminOrJudge;
 
@@ -335,26 +385,34 @@ export default function ChatPage() {
                 <>
                   <div className="flex-1 overflow-y-auto p-4">
                     <div className="space-y-4">
-                      {chatMessages.map((msg) => (
-                        <div
-                          key={msg.id}
-                          className={`flex items-end space-x-3 ${
-                            msg.sender_id === session?.user?.id ? "flex-row-reverse" : ""
-                          }`}
-                        >
-                          <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0"></div>
+                      {chatMessages.map((msg) => {
+                        const isAdminSender = isAdmin(msg.sender_id);
+                        const Icon = getRandomIcon(msg.sender_id, isAdminSender);
+                        return (
                           <div
-                            className={`p-3 rounded-2xl shadow ${
-                              msg.sender_id === session?.user?.id
-                                ? "bg-primary rounded-br-none"
-                                : "bg-secondary rounded-bl-none"
+                            key={msg.id}
+                            className={`flex items-end space-x-3 ${
+                              msg.sender_id === session?.user?.id ? "flex-row-reverse" : ""
                             }`}
                           >
-                            <p className="font-bold text-sm">{msg.sender_name}</p>
-                            <p>{msg.message_text}</p>
+                            <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0 flex items-center justify-center">
+                              <Icon className="w-5 h-5" />
+                            </div>
+                            <div
+                              className={`p-3 rounded-2xl shadow ${
+                                isAdminSender
+                                  ? "bg-black text-white"
+                                  : msg.sender_id === session?.user?.id
+                                  ? "bg-primary rounded-br-none"
+                                  : "bg-secondary rounded-bl-none"
+                              }`}
+                            >
+                              <p className="font-bold text-sm">{msg.sender_name}</p>
+                              <p>{msg.message_text}</p>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -425,26 +483,34 @@ export default function ChatPage() {
             <p className="text-center text-gray-500 mb-4">This chat is with all game players</p>
           )}
           <div className="space-y-4">
-            {chatMessages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex items-end space-x-3 ${
-                  msg.sender_id === String(localPlayerId) ? "flex-row-reverse" : ""
-                }`}
-              >
-                <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0"></div>
+            {chatMessages.map((msg) => {
+              const isAdminSender = isAdmin(msg.sender_id);
+              const Icon = getRandomIcon(msg.sender_id, isAdminSender);
+              return (
                 <div
-                  className={`p-3 rounded-2xl shadow ${
-                    msg.sender_id === String(localPlayerId)
-                      ? "bg-primary rounded-br-none"
-                      : "bg-secondary rounded-bl-none"
+                  key={msg.id}
+                  className={`flex items-end space-x-3 ${
+                    msg.sender_id === String(localPlayerId) ? "flex-row-reverse" : ""
                   }`}
                 >
-                  <p className="font-bold text-sm">{msg.sender_name}</p>
-                  <p>{msg.message_text}</p>
+                  <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0 flex items-center justify-center">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div
+                    className={`p-3 rounded-2xl shadow ${
+                      isAdminSender
+                        ? "bg-black text-white"
+                        : msg.sender_id === String(localPlayerId)
+                        ? "bg-primary rounded-br-none"
+                        : "bg-secondary rounded-bl-none"
+                    }`}
+                  >
+                    <p className="font-bold text-sm">{msg.sender_name}</p>
+                    <p>{msg.message_text}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

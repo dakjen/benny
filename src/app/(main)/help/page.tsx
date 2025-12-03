@@ -32,7 +32,7 @@ export default function HelpPage() {
 
   useEffect(() => {
     // For regular players, get info from localStorage
-    if (!session?.user) {
+    if (typeof window !== "undefined" && !session?.user) {
       setLocalPlayerId(Number(localStorage.getItem("playerId")));
     }
 
@@ -56,6 +56,10 @@ export default function HelpPage() {
   useEffect(() => {
     const fetchPlayers = async () => {
       const response = await fetch("/api/players");
+      if (!response.ok) {
+        console.error("Failed to fetch players");
+        return;
+      }
       const data = await response.json();
       setPlayers(data);
     };
@@ -83,6 +87,10 @@ export default function HelpPage() {
       if (!currentRecipientId || !currentSenderId) return;
 
       const response = await fetch(`/api/player-admin-messages?senderId=${currentSenderId}&recipientId=${currentRecipientId}${queryParams}`);
+      if (!response.ok) {
+        console.error("Failed to fetch messages");
+        return;
+      }
       const data = await response.json();
       setMessages(data);
     };

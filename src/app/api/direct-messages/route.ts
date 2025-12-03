@@ -49,9 +49,16 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const { name, message, teamId, gameId, type } = await request.json(); // name is player name
 
-  if (!name || !message || !teamId || !gameId || !type) {
+  if (!name || !message || !gameId || !type) {
     return NextResponse.json(
-      { message: "Sender name, message, teamId, gameId, and type are required." },
+      { message: "Sender name, message, gameId, and type are required." },
+      { status: 400 }
+    );
+  }
+
+  if (type === "team" && !teamId) {
+    return NextResponse.json(
+      { message: "teamId is required for team chat messages." },
       { status: 400 }
     );
   }

@@ -301,7 +301,7 @@ export default function QuestionsPage() {
 
   const isAdmin = session?.user?.role === "admin";
   const isJudge = session?.user?.role === "judge";
-  const isPlayer = session?.user?.role === "player" && localGameId !== null;
+  const isPlayer = localGameId !== null && !isAdmin && !isJudge;
 
   if (isAdmin || isJudge) {
     return (

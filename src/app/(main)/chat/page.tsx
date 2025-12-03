@@ -68,10 +68,22 @@ export default function ChatPage() {
   useEffect(() => {
     // For regular players, get info from localStorage
     if (!session?.user) {
-      setLocalPlayerId(Number(localStorage.getItem("playerId")));
-      setLocalPlayerName(localStorage.getItem("playerName"));
-      setLocalTeamId(Number(localStorage.getItem("teamId")));
-      setLocalGameId(Number(localStorage.getItem("gameId")));
+      const storedPlayerId = localStorage.getItem("playerId");
+      const storedPlayerName = localStorage.getItem("playerName");
+      const storedTeamId = localStorage.getItem("teamId");
+      const storedGameId = localStorage.getItem("gameId");
+
+      setLocalPlayerId(storedPlayerId ? Number(storedPlayerId) : null);
+      setLocalPlayerName(storedPlayerName);
+      setLocalTeamId(storedTeamId ? Number(storedTeamId) : null);
+      setLocalGameId(storedGameId ? Number(storedGameId) : null);
+
+      console.log("Player LocalStorage values:", {
+        playerId: storedPlayerId,
+        playerName: storedPlayerName,
+        teamId: storedTeamId,
+        gameId: storedGameId,
+      });
     }
   }, [session]);
 
@@ -251,6 +263,13 @@ export default function ChatPage() {
 
   const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
   const isPlayer = localPlayerId !== null && !isAdminOrJudge;
+
+  console.log("isPlayer:", isPlayer);
+  console.log("localPlayerId:", localPlayerId);
+  console.log("localPlayerName:", localPlayerName);
+  console.log("localTeamId:", localTeamId);
+  console.log("localGameId:", localGameId);
+  console.log("allPlayers in render (player view):", allPlayers);
 
   if (isAdminOrJudge) {
     const filteredTeams = allTeams.filter(team => team.gameId === selectedAdminGameId);

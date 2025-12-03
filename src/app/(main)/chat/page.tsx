@@ -179,12 +179,15 @@ export default function ChatPage() {
         const gamesData = await gamesResponse.json();
         console.log("Fetched games data:", gamesData);
         setAllGames(gamesData);
+        console.log("allGames after fetch:", gamesData);
       } catch (error) {
         console.error("Error fetching chat data:", error);
       }
     };
     fetchData();
   }, [session, localGameId, selectedAdminGameId]);
+
+  console.log("allGames in render:", allGames);
 
   // Helper to get player name from ID
 const getPlayerNameById = (playerId: number) => {

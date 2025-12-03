@@ -26,15 +26,26 @@ export default function HelpPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [localPlayerId, setLocalPlayerId] = useState<number | null>(null);
-
-  // Placeholder for Admin User ID - This should ideally be fetched dynamically or from an env variable
-  const ADMIN_USER_ID: string | null = process.env.NEXT_PUBLIC_ADMIN_HELP_ID || null; 
+  const [adminUserId, setAdminUserId] = useState<string | null>(null); // State to store the resolved admin ID
 
   useEffect(() => {
     // For regular players, get info from localStorage
     if (!session?.user) {
       setLocalPlayerId(Number(localStorage.getItem("playerId")));
     }
+
+    // Fetch the single admin's ID
+    const fetchAdminId = async () => {
+      const response = await fetch("/api/admin/users"); // This endpoint returns all users, including admin
+      if (response.ok) {
+        const usersData = await response.json();
+        const admin = usersData.find((user: any) => user.role === "admin");
+        if (admin) {
+          setAdminUserId(admin.id);
+        }
+      }
+    };
+    fetchAdminId();
   }, [session]);
 
   // Fetch players for admin messaging
@@ -61,7 +72,7 @@ export default function HelpPage() {
           currentSenderId = session.user.id;
         }
       } else if (localPlayerId) {
-        currentRecipientId = ADMIN_USER_ID; // Player messages admin
+        currentRecipientId = "admin"; // Player messages admin, backend will resolve
         currentSenderId = localPlayerId.toString();
       }
 
@@ -72,7 +83,7 @@ export default function HelpPage() {
       setMessages(data);
     };
     fetchMessages();
-  }, [session, selectedPlayer, localPlayerId]);
+  }, [session, selectedPlayer, localPlayerId, adminUserId]); // Add adminUserId to dependencies
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,22 +98,27 @@ export default function HelpPage() {
         currentSenderId = session.user.id;
       }
     } else if (localPlayerId) {
-      currentRecipientId = ADMIN_USER_ID; // Player messages admin
+      // For player to admin message, omit recipientId and let backend resolve
       currentSenderId = localPlayerId.toString();
     }
 
-    if (!currentRecipientId || !currentSenderId) return;
+    if (!currentSenderId) return;
+
+    const payload: { senderId: string; recipientId?: string; message: string } = {
+      senderId: currentSenderId,
+      message,
+    };
+
+    if (currentRecipientId) {
+      payload.recipientId = currentRecipientId;
+    }
 
     const response = await fetch("/api/player-admin-messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        senderId: currentSenderId,
-        recipientId: currentRecipientId,
-        message,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (response.ok) {
@@ -120,7 +136,7 @@ export default function HelpPage() {
     const player = players.find(p => p.id.toString() === senderId);
     if (player) return player.name;
     // Fallback for admin if player is not found (e.g., if admin is the sender)
-    if (senderId === ADMIN_USER_ID) return "Admin"; // Use ADMIN_USER_ID here
+    if (senderId === adminUserId) return "Admin"; // Use resolved adminUserId here
     return "Unknown";
   };
 

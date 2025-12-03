@@ -8,14 +8,37 @@ import { authOptions } from "@/auth";
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   const { searchParams } = new URL(request.url);
-  const senderId = searchParams.get("senderId");
-  const recipientId = searchParams.get("recipientId");
+  let senderId = searchParams.get("senderId");
+  let recipientId = searchParams.get("recipientId");
 
   if (!senderId || !recipientId) {
     return NextResponse.json({ message: "senderId and recipientId are required" }, { status: 400 });
   }
 
   try {
+    let actualAdminId: string | null = null;
+    const adminUsers = await db.select().from(users).where(eq(users.role, "admin"));
+    if (adminUsers.length === 1) {
+      actualAdminId = adminUsers[0].id;
+    } else {
+      // If there's no single admin, we can't resolve "admin" as a recipient
+      if (recipientId === "admin" || senderId === "admin") {
+        return NextResponse.json(
+          { message: "Could not determine admin recipient. Ensure there is exactly one admin user." },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Resolve "admin" recipientId to actual admin ID
+    if (recipientId === "admin" && actualAdminId) {
+      recipientId = actualAdminId;
+    }
+    // Resolve "admin" senderId to actual admin ID (for fetching messages where admin is sender)
+    if (senderId === "admin" && actualAdminId) {
+      senderId = actualAdminId;
+    }
+
     const messages = await db
       .select()
       .from(playerAdminMessages)
@@ -45,16 +68,29 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  const { senderId, recipientId, message } = await request.json();
+  let { senderId, recipientId, message } = await request.json();
 
-  if (!senderId || !recipientId || !message) {
+  if (!senderId || !message) {
     return NextResponse.json(
-      { message: "senderId, recipientId, and message are required" },
+      { message: "senderId and message are required" },
       { status: 400 }
     );
   }
 
   try {
+    // If recipientId is not provided, assume it's a player sending to the main admin
+    if (!recipientId) {
+      const adminUsers = await db.select().from(users).where(eq(users.role, "admin"));
+      if (adminUsers.length === 1) {
+        recipientId = adminUsers[0].id;
+      } else {
+        return NextResponse.json(
+          { message: "Could not determine admin recipient. Ensure there is exactly one admin user." },
+          { status: 400 }
+        );
+      }
+    }
+
     const newMessage = await db
       .insert(playerAdminMessages)
       .values({

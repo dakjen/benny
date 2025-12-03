@@ -7,12 +7,13 @@ import { supabase } from "@/lib/supabase"; // Import Supabase client
 
 type Message = {
   id: number;
-  sender: number; // This will be player ID
-  message: string;
-  teamId: number | null;
-  gameId: number;
+  sender_id: string; // Matches database column name
+  sender_name: string; // Matches database column name
+  message_text: string; // Matches database column name
+  team_id: number | null; // Matches database column name
+  game_id: number; // Matches database column name
   type: "team" | "game";
-  createdAt: string;
+  created_at: string; // Matches database column name
 };
 
 type Player = {

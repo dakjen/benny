@@ -13,11 +13,15 @@ export async function GET(request: Request) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const gameId = searchParams.get("gameId");
+    const gameIdParam = searchParams.get("gameId");
 
     let allPlayers;
-    if (gameId) {
-      allPlayers = await db.select().from(players).where(eq(players.gameId, Number(gameId)));
+    if (gameIdParam) {
+      const gameId = Number(gameIdParam);
+      if (isNaN(gameId)) {
+        return NextResponse.json({ message: "Invalid game ID." }, { status: 400 });
+      }
+      allPlayers = await db.select().from(players).where(eq(players.gameId, gameId));
     } else {
       allPlayers = await db.select().from(players);
     }

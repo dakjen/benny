@@ -6,11 +6,15 @@ import { eq } from "drizzle-orm";
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const gameId = searchParams.get("gameId");
+    const gameIdParam = searchParams.get("gameId");
 
     let allPlayers;
-    if (gameId) {
-      allPlayers = await db.select().from(players).where(eq(players.gameId, Number(gameId)));
+    if (gameIdParam) {
+      const gameId = Number(gameIdParam);
+      if (isNaN(gameId)) {
+        return NextResponse.json({ message: "Invalid game ID." }, { status: 400 });
+      }
+      allPlayers = await db.select().from(players).where(eq(players.gameId, gameId));
     } else {
       // For public access, it's generally safer to require a gameId
       // or return an empty array if no gameId is provided.

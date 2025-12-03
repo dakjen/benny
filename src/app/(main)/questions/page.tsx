@@ -175,13 +175,19 @@ export default function QuestionsPage() {
             const gameHasSequentialCategories = categoriesData.some((cat: Category) => cat.isSequential);
 
             if (gameHasSequentialCategories) {
+              console.log("Player-specific logic: gameHasSequentialCategories is true");
+              console.log("Current playerCurrentCategoryId:", playerCurrentCategoryId);
+              console.log("playerProgressData.currentCategoryId:", playerProgressData.currentCategoryId);
+
               // If playerCurrentCategoryId is null, find the first uncompleted sequential category
               if (playerProgressData.currentCategoryId === null) {
+                console.log("playerProgressData.currentCategoryId is null, attempting to find first uncompleted sequential category.");
                 const firstUncompletedSequentialCategory = categoriesData
                   .filter((cat: Category) => cat.isSequential && !playerCompletedCategories.includes(cat.id))
                   .sort((a: Category, b: Category) => a.order - b.order)[0];
 
                 if (firstUncompletedSequentialCategory) {
+                  console.log("Found firstUncompletedSequentialCategory:", firstUncompletedSequentialCategory.id);
                   setPlayerCurrentCategoryId(firstUncompletedSequentialCategory.id);
                   // Also update the backend to set this as the current category
                   await fetch("/api/public/player-progress", {
@@ -192,15 +198,19 @@ export default function QuestionsPage() {
                       currentCategoryId: firstUncompletedSequentialCategory.id,
                     }),
                   });
+                } else {
+                  console.log("No uncompleted sequential category found.");
                 }
               }
 
               // Filter categories to only show the current one if sequential
               if (playerCurrentCategoryId !== null) {
+                console.log("Filtering categories for current playerCurrentCategoryId:", playerCurrentCategoryId);
                 categoriesData = categoriesData.filter((cat: Category) => cat.id === playerCurrentCategoryId);
                 questionsData = questionsData.filter((q: Question) => q.categoryId === playerCurrentCategoryId);
               } else {
                 // If no current category is set, and there are sequential categories, show nothing
+                console.log("No playerCurrentCategoryId set, showing nothing for sequential categories.");
                 categoriesData = [];
                 questionsData = [];
               }

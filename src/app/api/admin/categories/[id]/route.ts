@@ -9,7 +9,7 @@ import { authOptions } from "@/auth";
 
 export async function PUT(
   request: NextRequest,
-  context: any // Changed to any
+  context: { params: { id: string } }
 ) {
   const { params } = context;
 
@@ -52,7 +52,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  context: any // Changed to any
+  context: { params: { id: string } }
 ) {
   const { params } = context;
 

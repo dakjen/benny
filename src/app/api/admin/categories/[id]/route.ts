@@ -17,12 +17,19 @@ export async function PUT(
   }
 
   try {
+    console.log("PUT /api/admin/categories/[id] called. context.params:", context.params);
     const idParam = context.params.id;
+    console.log("idParam:", idParam);
+
     if (typeof idParam !== 'string') {
+      console.error("Invalid category ID format: idParam is not a string.", idParam);
       return NextResponse.json({ message: "Invalid category ID format." }, { status: 400 });
     }
     const categoryId = Number(idParam);
+    console.log("categoryId after Number(idParam):", categoryId);
+
     if (isNaN(categoryId)) {
+      console.error("Invalid category ID: categoryId is NaN.", idParam);
       return NextResponse.json({ message: "Invalid category ID." }, { status: 400 });
     }
 
@@ -48,7 +55,7 @@ export async function PUT(
 
     return NextResponse.json(updatedCategory[0], { status: 200 });
   } catch (error) {
-    console.error(error);
+    console.error("Error updating category in /api/admin/categories/[id]:", error);
     return NextResponse.json(
       { message: "An error occurred while updating the category." },
       { status: 500 }
@@ -66,12 +73,19 @@ export async function DELETE(
   }
 
   try {
+    console.log("DELETE /api/admin/categories/[id] called. context.params:", context.params);
     const idParam = context.params.id;
+    console.log("idParam:", idParam);
+
     if (typeof idParam !== 'string') {
+      console.error("Invalid category ID format: idParam is not a string.", idParam);
       return NextResponse.json({ message: "Invalid category ID format." }, { status: 400 });
     }
     const categoryId = Number(idParam);
+    console.log("categoryId after Number(idParam):", categoryId);
+
     if (isNaN(categoryId)) {
+      console.error("Invalid category ID: categoryId is NaN.", idParam);
       return NextResponse.json({ message: "Invalid category ID." }, { status: 400 });
     }
 
@@ -89,7 +103,7 @@ export async function DELETE(
       { status: 200 }
     );
   } catch (error) {
-    console.error(error);
+    console.error("Error deleting category in /api/admin/categories/[id]:", error);
     return NextResponse.json(
       { message: "An error occurred while deleting the category." },
       { status: 500 }

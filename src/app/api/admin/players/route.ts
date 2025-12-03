@@ -1,9 +1,16 @@
 import { db } from "@/db";
 import { players } from "@/db/schema";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/auth";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 
 export async function GET(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user?.role !== "admin") {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const gameId = searchParams.get("gameId");
@@ -12,16 +19,12 @@ export async function GET(request: Request) {
     if (gameId) {
       allPlayers = await db.select().from(players).where(eq(players.gameId, Number(gameId)));
     } else {
-      // For public access, it's generally safer to require a gameId
-      // or return an empty array if no gameId is provided.
-      // Returning all players without a gameId might expose too much data.
-      // For now, let's return an empty array if no gameId is provided for public.
-      return NextResponse.json([], { status: 200 });
+      allPlayers = await db.select().from(players);
     }
     
     return NextResponse.json(allPlayers, { status: 200 });
   } catch (error) {
-    console.error("Error fetching players in /api/public/players:", error);
+    console.error("Error fetching players in /api/admin/players:", error);
     return NextResponse.json(
       { message: "An error occurred while fetching players." },
       { status: 500 }

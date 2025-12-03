@@ -1,14 +1,14 @@
 import { db } from "@/db";
 import { questions } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
 export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: any
 ) {
   try {
-    const id = Number(params.id);
+    const id = Number(context.params.id);
     const body = await request.json();
     const { questionText, categoryId, expectedAnswer, gameId, points } = body;
 
@@ -43,11 +43,11 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: any
 ) {
   try {
-    const id = Number(params.id);
+    const id = Number(context.params.id);
 
     if (!id) {
       return NextResponse.json({ message: "Question ID is required." }, { status: 400 });

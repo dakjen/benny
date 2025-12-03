@@ -147,10 +147,12 @@ export default function QuestionsPage() {
 
           // Player-specific logic for sequential categories
           if (!isAdmin && localPlayerId) {
+            let playerProgressData = { currentCategoryId: null, completedCategories: "[]" }; // Initialize with default
+
             // Fetch player progress
             const playerProgressResponse = await fetch(`/api/public/player-progress?playerId=${localPlayerId}`);
             if (playerProgressResponse.ok) {
-              const playerProgressData = await playerProgressResponse.json();
+              playerProgressData = await playerProgressResponse.json();
               setPlayerCurrentCategoryId(playerProgressData.currentCategoryId);
               setPlayerCompletedCategories(JSON.parse(playerProgressData.completedCategories || "[]"));
             } else {

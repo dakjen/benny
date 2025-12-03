@@ -290,9 +290,10 @@ export default function QuestionsPage() {
   };
 
   const isAdmin = session?.user?.role === "admin";
-  const isPlayer = localGameId !== null && !isAdmin;
+  const isJudge = session?.user?.role === "judge";
+  const isPlayer = session?.user?.role === "player" && localGameId !== null;
 
-  if (isAdmin) {
+  if (isAdmin || isJudge) {
     return (
       <div className="flex flex-col h-full bg-card text-foreground">
         <header className="bg-background p-4 text-center z-10 shadow-md">

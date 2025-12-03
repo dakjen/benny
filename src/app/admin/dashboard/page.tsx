@@ -9,7 +9,7 @@ export default async function AdminDashboardPage() {
 
   let defaultGameId: number | null = null;
   try {
-    const gamesResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/admin/games`);
+    const gamesResponse = await fetch(`/api/admin/games`);
     if (gamesResponse.ok) {
       const gamesData = await gamesResponse.json();
       if (gamesData.length === 1) {
@@ -25,7 +25,7 @@ export default async function AdminDashboardPage() {
   let pendingSubmissionsCount = 0;
   if ((isAdmin || isJudge) && defaultGameId) { // Only fetch if a default game is selected
     try {
-      const response = await fetch(`${process.env.NEXTAUTH_URL}/api/admin/submissions/count?gameId=${defaultGameId}`);
+      const response = await fetch(`/api/admin/submissions/count?gameId=${defaultGameId}`);
       if (response.ok) {
         const data = await response.json();
         pendingSubmissionsCount = data.count;
@@ -40,7 +40,7 @@ export default async function AdminDashboardPage() {
   let totalPointsGranted = 0;
   if ((isAdmin || isJudge) && defaultGameId) { // Only fetch if a default game is selected
     try {
-      const response = await fetch(`${process.env.NEXTAUTH_URL}/api/admin/points/total?gameId=${defaultGameId}`);
+      const response = await fetch(`/api/admin/points/total?gameId=${defaultGameId}`);
       if (response.ok) {
         const data = await response.json();
         totalPointsGranted = data.totalPoints;

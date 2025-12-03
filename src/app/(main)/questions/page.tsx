@@ -31,23 +31,39 @@ export default function QuestionsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<number[]>([]); // State to manage expanded categories
+  const [localGameId, setLocalGameId] = useState<number | null>(null); // New state for player's game ID
 
   // Admin-specific states (kept for now, will be moved or removed later if needed)
   const [newQuestionText, setNewQuestionText] = useState("");
   const [newQuestionPoints, setNewQuestionPoints] = useState(0);
 
-  // Fetch games for all users
+  // Get localGameId from localStorage for players
   useEffect(() => {
-    const fetchGames = async () => {
+    if (!session?.user) { // Only for players not logged in via session
+      const storedGameId = localStorage.getItem("gameId");
+      if (storedGameId) {
+        setLocalGameId(Number(storedGameId));
+      }
+    }
+  }, [session]);
+
+  // Fetch games for all users and set selectedGameId
+  useEffect(() => {
+    const fetchGamesAndSetSelected = async () => {
       const response = await fetch("/api/admin/games"); // Assuming this API is accessible
       const data = await response.json();
       setGames(data);
-      if (data.length === 1) {
-        setSelectedGameId(data[0].id);
+
+      if (session?.user?.role === "admin") {
+        if (data.length === 1) {
+          setSelectedGameId(data[0].id);
+        }
+      } else if (localGameId) { // For players, use localGameId
+        setSelectedGameId(localGameId);
       }
     };
-    fetchGames();
-  }, []);
+    fetchGamesAndSetSelected();
+  }, [session, localGameId]); // Add localGameId to dependencies
 
   // Fetch categories and questions when selectedGameId changes
   useEffect(() => {
@@ -177,21 +193,7 @@ export default function QuestionsPage() {
       </header>
 
       <div className="p-4">
-        <h2 className="text-xl font-bold mb-4">Select Game</h2>
-        <select
-          value={selectedGameId || ""}
-          onChange={(e) => setSelectedGameId(Number(e.target.value))}
-          className="w-full bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring mb-4"
-        >
-          <option value="" disabled>Select a Game</option>
-          {games.map((game) => (
-            <option key={game.id} value={game.id}>
-              {game.name}
-            </option>
-          ))}
-        </select>
-
-        {selectedGameId && (
+        {selectedGameId ? (
           <div className="space-y-4">
             {categories.map((category) => (
               <div key={category.id} className="bg-secondary rounded-lg shadow-md">
@@ -221,6 +223,8 @@ export default function QuestionsPage() {
               </div>
             ))}
           </div>
+        ) : (
+          <p className="text-center text-gray-500 mt-8">Loading questions or no game selected.</p>
         )}
       </div>
     </div>

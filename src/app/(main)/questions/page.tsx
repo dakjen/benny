@@ -57,6 +57,12 @@ export default function QuestionsPage() {
           console.error("Failed to fetch games:", response.status, response.statusText, errorText);
           throw new Error(`Failed to fetch games: ${response.statusText}`);
         }
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const errorText = await response.text();
+          console.error("Games API did not return JSON:", errorText);
+          throw new Error("Games API did not return JSON.");
+        }
         const data = await response.json();
         setGames(data);
 
@@ -86,6 +92,12 @@ export default function QuestionsPage() {
             console.error("Failed to fetch categories:", categoriesResponse.status, categoriesResponse.statusText, errorText);
             throw new Error(`Failed to fetch categories: ${categoriesResponse.statusText}`);
           }
+          const categoriesContentType = categoriesResponse.headers.get('content-type');
+          if (!categoriesContentType || !categoriesContentType.includes('application/json')) {
+            const errorText = await categoriesResponse.text();
+            console.error("Categories API did not return JSON:", errorText);
+            throw new Error("Categories API did not return JSON.");
+          }
           const categoriesData = await categoriesResponse.json();
           setCategories(categoriesData.filter((cat: Category) => cat.gameId === selectedGameId));
 
@@ -95,6 +107,12 @@ export default function QuestionsPage() {
             const errorText = await questionsResponse.text();
             console.error("Failed to fetch questions:", questionsResponse.status, questionsResponse.statusText, errorText);
             throw new Error(`Failed to fetch questions: ${questionsResponse.statusText}`);
+          }
+          const questionsContentType = questionsResponse.headers.get('content-type');
+          if (!questionsContentType || !questionsContentType.includes('application/json')) {
+            const errorText = await questionsResponse.text();
+            console.error("Questions API did not return JSON:", errorText);
+            throw new Error("Questions API did not return JSON.");
           }
           const questionsData = await questionsResponse.json();
           setQuestions(questionsData);

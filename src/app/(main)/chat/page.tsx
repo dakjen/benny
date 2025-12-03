@@ -125,7 +125,14 @@ export default function ChatPage() {
           console.error("Failed to fetch players:", playersResponse.status, playersResponse.statusText, errorText);
           throw new Error(`Failed to fetch players: ${playersResponse.statusText}`);
         }
+        const playersContentType = playersResponse.headers.get('content-type');
+        if (!playersContentType || !playersContentType.includes('application/json')) {
+          const errorText = await playersResponse.text();
+          console.error("Players API did not return JSON:", errorText);
+          throw new Error("Players API did not return JSON.");
+        }
         const playersData = await playersResponse.json();
+        console.log("Fetched players data:", playersData);
         setAllPlayers(playersData);
 
         const teamsResponse = await fetch("/api/teams");
@@ -134,7 +141,14 @@ export default function ChatPage() {
           console.error("Failed to fetch teams:", teamsResponse.status, teamsResponse.statusText, errorText);
           throw new Error(`Failed to fetch teams: ${teamsResponse.statusText}`);
         }
+        const teamsContentType = teamsResponse.headers.get('content-type');
+        if (!teamsContentType || !teamsContentType.includes('application/json')) {
+          const errorText = await teamsResponse.text();
+          console.error("Teams API did not return JSON:", errorText);
+          throw new Error("Teams API did not return JSON.");
+        }
         const teamsData = await teamsResponse.json();
+        console.log("Fetched teams data:", teamsData);
         setAllTeams(teamsData);
 
         const gamesResponse = await fetch("/api/admin/games"); // Fetch all games for admin/judge
@@ -143,7 +157,14 @@ export default function ChatPage() {
           console.error("Failed to fetch games:", gamesResponse.status, gamesResponse.statusText, errorText);
           throw new Error(`Failed to fetch games: ${gamesResponse.statusText}`);
         }
+        const gamesContentType = gamesResponse.headers.get('content-type');
+        if (!gamesContentType || !gamesContentType.includes('application/json')) {
+          const errorText = await gamesResponse.text();
+          console.error("Games API did not return JSON:", errorText);
+          throw new Error("Games API did not return JSON.");
+        }
         const gamesData = await gamesResponse.json();
+        console.log("Fetched games data:", gamesData);
         setAllGames(gamesData);
       } catch (error) {
         console.error("Error fetching chat data:", error);

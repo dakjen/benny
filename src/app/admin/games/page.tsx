@@ -23,6 +23,13 @@ export default function AdminGamesPage() {
   const [newTeamName, setNewTeamName] = useState("");
   const searchParams = useSearchParams();
   const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [editingTeamId, setEditingTeamId] = useState<number | null>(null); // State for editing team
+  const [editedTeamName, setEditedTeamName] = useState(""); // State for edited team name
+  const [editingGameId, setEditingGameId] = useState<number | null>(null); // State for editing game
+  const [editedGameName, setEditedGameName] = useState(""); // State for edited game name
+  const [editedGameAccessCode, setEditedGameAccessCode] = useState(""); // State for edited game access code
 
   const fetchGamesAndTeams = async () => {
     try {

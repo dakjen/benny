@@ -37,7 +37,7 @@ export async function PUT(
   context: RouteContext
 ) {
   try {
-    const { questionText, category, expectedAnswer } = await request.json();
+    const { questionText, categoryId, expectedAnswer } = await request.json();
     const { id } = await context.params;
     const questionId = parseInt(id);
 
@@ -52,7 +52,7 @@ export async function PUT(
       .update(questions)
       .set({
         questionText,
-        category,
+        categoryId, // Changed from category
         expectedAnswer,
       })
       .where(eq(questions.id, questionId))

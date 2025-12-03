@@ -18,7 +18,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { questionText, category, expectedAnswer, gameId, points } = await request.json();
+    const { questionText, categoryId, expectedAnswer, gameId, points } = await request.json();
 
     if (!questionText || !gameId || points === undefined) {
       return NextResponse.json(
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       .insert(questions)
       .values({
         questionText,
-        category,
+        categoryId,
         expectedAnswer,
         gameId,
         points,

@@ -8,11 +8,21 @@ import {
   boolean,
 } from "drizzle-orm/pg-core"; // Added primaryKey, boolean
 
+// New categories table
+export const categories = pgTable("categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  gameId: integer("game_id")
+    .notNull()
+    .references(() => games.id, { onDelete: "cascade" }), // Categories are game-specific
+});
+
 // Existing tables
 export const questions = pgTable("questions", {
   id: serial("id").primaryKey(),
   questionText: text("question_text").notNull(),
-  category: text("category"),
+  categoryId: integer("category_id") // New: Reference to categories table
+    .references(() => categories.id, { onDelete: "set null" }),
   expectedAnswer: text("expected_answer"),
   gameId: integer("game_id")
     .notNull()

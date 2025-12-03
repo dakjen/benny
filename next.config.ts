@@ -5,8 +5,7 @@ dotenv.config({ path: './.env.local' }); // Explicitly load .env.local
 
 const nextConfig: NextConfig = {
   /* config options here */
-  reactCompiler: true,
-  // Removed env section
+  // Removed reactCompiler: true
 };
 
 export default nextConfig;

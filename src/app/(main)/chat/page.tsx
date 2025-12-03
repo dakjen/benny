@@ -36,19 +36,6 @@ type Game = {
 const regularIcons = [Bath, Bitcoin, Beef, BatteryWarning, Binoculars, BicepsFlexed, Bone];
 const adminIcon = Brain;
 
-const getRandomIcon = (senderId: string, isAdminSender: boolean) => {
-  if (isAdminSender) {
-    return adminIcon;
-  }
-  // Simple hash function to get a consistent index
-  if (!senderId) {
-    return regularIcons[0];
-  }
-  const hash = senderId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const index = hash % regularIcons.length;
-  return regularIcons[index];
-};
-
 export default function ChatPage() {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<"team" | "game">("game"); // Default to game chat for admin
@@ -62,6 +49,7 @@ export default function ChatPage() {
   const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [allGames, setAllGames] = useState<Game[]>([]); // New state for all games
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
+  const [assignedIcons, setAssignedIcons] = useState<Record<string, React.ComponentType<any>>>({}); // New state
 
   // Admin/Judge specific states
   const [selectedAdminGameId, setSelectedAdminGameId] = useState<number | null>(null);
@@ -145,17 +133,191 @@ export default function ChatPage() {
 
     fetchInitialMessages();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+        return () => {
 
+          supabase.removeChannel(channel);
 
+        };
 
+      }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
+    
+
+        // New useEffect for assigning unique icons
+
+    
+
+        useEffect(() => {
+
+    
+
+          const newAssignedIcons = { ...assignedIcons };
+
+    
+
+          let changed = false;
+
+    
+
+      
+
+    
+
+          // Collect all sender IDs from chatMessages
+
+    
+
+          const senderIdsInChat = new Set(chatMessages.map(msg => msg.sender_id));
+
+    
+
+      
+
+    
+
+          // Iterate through each sender in the chat
+
+    
+
+          senderIdsInChat.forEach(senderId => {
+
+    
+
+            if (!newAssignedIcons[senderId]) { // Only assign if not already assigned
+
+    
+
+              const isAdminSender = adminUsers.some(admin => admin.id === senderId);
+
+    
+
+      
+
+    
+
+              if (isAdminSender) {
+
+    
+
+                newAssignedIcons[senderId] = adminIcon;
+
+    
+
+              } else {
+
+    
+
+                // Find an unused regular icon
+
+    
+
+                const currentlyUsedRegularIcons = new Set(
+
+    
+
+                  Object.values(newAssignedIcons).filter(icon => regularIcons.includes(icon))
+
+    
+
+                );
+
+    
+
+                const availableIcons = regularIcons.filter(icon => !currentlyUsedRegularIcons.has(icon));
+
+    
+
+      
+
+    
+
+                let iconToAssign;
+
+    
+
+                if (availableIcons.length > 0) {
+
+    
+
+                  // Assign the first available unique icon
+
+    
+
+                  iconToAssign = availableIcons[0];
+
+    
+
+                } else {
+
+    
+
+                  // Fallback: all unique icons are used, cycle through them based on hash
+
+    
+
+                  const hash = senderId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
+    
+
+                  const index = hash % regularIcons.length;
+
+    
+
+                  iconToAssign = regularIcons[index];
+
+    
+
+                }
+
+    
+
+                newAssignedIcons[senderId] = iconToAssign;
+
+    
+
+              }
+
+    
+
+              changed = true;
+
+    
+
+            }
+
+    
+
+          });
+
+    
+
+      
+
+    
+
+          if (changed) {
+
+    
+
+            setAssignedIcons(newAssignedIcons);
+
+    
+
+          }
+
+    
+
+        }, [chatMessages, adminUsers, assignedIcons]); // Depend on assignedIcons to ensure updates
+
+    
+
+    
+
+      useEffect(() => {
+
+        const fetchData = async () => {
+
+          try {
         const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
         const currentActiveGameId = isAdminOrJudge ? selectedAdminGameId : localGameId;
 
@@ -387,7 +549,7 @@ export default function ChatPage() {
                     <div className="space-y-4">
                       {chatMessages.map((msg) => {
                         const isAdminSender = isAdmin(msg.sender_id);
-                        const Icon = getRandomIcon(msg.sender_id, isAdminSender);
+                        const Icon = assignedIcons[msg.sender_id] || regularIcons[0]; // Fallback
                         return (
                           <div
                             key={msg.id}
@@ -485,7 +647,7 @@ export default function ChatPage() {
           <div className="space-y-4">
             {chatMessages.map((msg) => {
               const isAdminSender = isAdmin(msg.sender_id);
-              const Icon = getRandomIcon(msg.sender_id, isAdminSender);
+              const Icon = assignedIcons[msg.sender_id] || regularIcons[0]; // Fallback
               return (
                 <div
                   key={msg.id}

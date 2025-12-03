@@ -33,20 +33,6 @@ type Game = {
   name: string;
 };
 
-// Helper to get player name from ID (moved outside component)
-const getPlayerNameByIdHelper = (
-  playerId: number,
-  localPlayerId: number | null,
-  localPlayerName: string | null,
-  allPlayers: Player[]
-) => {
-  if (playerId === localPlayerId && localPlayerName) {
-    return localPlayerName;
-  }
-  const player = allPlayers.find((p) => p.id === playerId);
-  return player ? player.name : "Unknown";
-};
-
 export default function ChatPage() {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<"team" | "game">("game"); // Default to game chat for admin
@@ -132,7 +118,7 @@ export default function ChatPage() {
         const gamesApiUrl = isAdminOrJudge ? "/api/admin/games" : "/api/public/games"; // Games API for public doesn't need gameId for all games
 
         // Only fetch players and teams if a game is selected or if it's a player
-        if (currentActiveGameId || !isAdminOrJudge) {
+        if (currentActiveGameId) {
           const playersResponse = await fetch(playersApiUrl);
           if (!playersResponse.ok) {
             const errorText = await playersResponse.text();
@@ -195,12 +181,6 @@ export default function ChatPage() {
   }, [session, localGameId, selectedAdminGameId]);
 
   console.log("allGames in render:", allGames);
-
-  const getPlayerNameById = useCallback(
-    (playerId: number) =>
-      getPlayerNameByIdHelper(playerId, localPlayerId, localPlayerName, allPlayers),
-    [localPlayerId, localPlayerName, allPlayers]
-  );
 
   const handleSendMessage = useCallback(
     async (e: React.FormEvent) => {
@@ -359,19 +339,19 @@ export default function ChatPage() {
                         <div
                           key={msg.id}
                           className={`flex items-end space-x-3 ${
-                            msg.sender === localPlayerId ? "flex-row-reverse" : ""
+                            msg.sender_id === session?.user?.id ? "flex-row-reverse" : ""
                           }`}
                         >
                           <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0"></div>
                           <div
                             className={`p-3 rounded-2xl shadow ${
-                              msg.sender === localPlayerId
+                              msg.sender_id === session?.user?.id
                                 ? "bg-primary rounded-br-none"
                                 : "bg-secondary rounded-bl-none"
                             }`}
                           >
-                            <p className="font-bold text-sm">{getPlayerNameById(msg.sender)}</p>
-                            <p>{msg.message}</p>
+                            <p className="font-bold text-sm">{msg.sender_name}</p>
+                            <p>{msg.message_text}</p>
                           </div>
                         </div>
                       ))}
@@ -449,19 +429,19 @@ export default function ChatPage() {
               <div
                 key={msg.id}
                 className={`flex items-end space-x-3 ${
-                  msg.sender === localPlayerId ? "flex-row-reverse" : ""
+                  msg.sender_id === String(localPlayerId) ? "flex-row-reverse" : ""
                 }`}
               >
                 <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0"></div>
                 <div
                   className={`p-3 rounded-2xl shadow ${
-                    msg.sender === localPlayerId
+                    msg.sender_id === String(localPlayerId)
                       ? "bg-primary rounded-br-none"
                       : "bg-secondary rounded-bl-none"
                   }`}
                 >
-                  <p className="font-bold text-sm">{getPlayerNameById(msg.sender)}</p>
-                  <p>{msg.message}</p>
+                  <p className="font-bold text-sm">{msg.sender_name}</p>
+                  <p>{msg.message_text}</p>
                 </div>
               </div>
             ))}

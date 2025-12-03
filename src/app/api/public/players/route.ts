@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     const gameIdParam = searchParams.get("gameId");
 
     let allPlayers;
-    if (gameIdParam) {
+    if (gameIdParam && gameIdParam !== "null") {
       const gameId = Number(gameIdParam);
       if (isNaN(gameId)) {
         return NextResponse.json({ message: "Invalid game ID." }, { status: 400 });

@@ -73,7 +73,6 @@ export default function AdminQuestionsPage() {
 
   useEffect(() => {
     if (selectedGameId) {
-      console.log("Selected Game ID:", selectedGameId); // Debug log
       fetchCategories(selectedGameId);
       fetchQuestions(selectedGameId);
     }
@@ -199,8 +198,12 @@ export default function AdminQuestionsPage() {
       <div className="mt-8 max-w-lg mx-auto">
         <h2 className="text-xl font-bold mb-4">Select Game</h2>
         <select
-          value={selectedGameId || ""}
-          onChange={(e) => setSelectedGameId(Number(e.target.value))}
+          value={selectedGameId ?? ""}
+          onChange={(e) => {
+            const value = e.target.value;
+            const newGameId = value === "" ? null : Number(value);
+            setSelectedGameId(newGameId);
+          }}
           className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring mb-8"
         >
           <option value="" disabled>Select a Game</option>
@@ -212,53 +215,61 @@ export default function AdminQuestionsPage() {
         </select>
       </div>
 
-      {selectedGameId && (
+      {selectedGameId === null && (
+        <p className="text-center text-red-500 text-2xl font-bold mt-8">NO GAME SELECTED</p>
+      )}
+
+      {/* Category Management - TEMPORARILY ALWAYS RENDERED FOR DIAGNOSIS */}
+      <div className="mt-8 max-w-lg mx-auto">
+        <h2 className="text-xl font-bold mb-4">Manage Categories</h2>
+        <form onSubmit={editingCategory ? handleUpdateCategory : handleAddCategory} className="space-y-4 mb-4">
+          <input
+            type="text"
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
+            placeholder="Category Name"
+            className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+            required
+          />
+          <button
+            type="submit"
+            className="w-full bg-primary text-primary-foreground rounded-lg py-3 font-bold hover:bg-primary/90 transition-colors"
+          >
+            {editingCategory ? "Update Category" : "Add Category"}
+          </button>
+          {editingCategory && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingCategory(null);
+                setNewCategoryName("");
+              }}
+              className="w-full bg-gray-500 text-white rounded-lg py-3 font-bold hover:bg-gray-600 transition-colors"
+            >
+              Cancel Edit
+            </button>
+          )}
+        </form>
+
+        {categories.length > 0 ? (
+          <ul className="space-y-2">
+            {categories.map((cat) => (
+              <li key={cat.id} className="p-3 bg-secondary rounded-lg shadow-sm flex justify-between items-center">
+                <span>{cat.name}</span>
+                <div className="space-x-2">
+                  <button onClick={() => handleEditCategory(cat)} className="text-blue-400 hover:text-blue-600">Edit</button>
+                  <button onClick={() => handleDeleteCategory(cat.id)} className="text-red-400 hover:text-red-600">Delete</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-center text-gray-500 mt-4">No categories found for this game. Add one above!</p>
+        )}
+      </div>
+
+      {selectedGameId !== null && (
         <>
-          {/* Category Management */}
-          <div className="mt-8 max-w-lg mx-auto">
-            <h2 className="text-xl font-bold mb-4">Manage Categories</h2>
-            <form onSubmit={editingCategory ? handleUpdateCategory : handleAddCategory} className="space-y-4 mb-4">
-              <input
-                type="text"
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder="Category Name"
-                className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
-                required
-              />
-              <button
-                type="submit"
-                className="w-full bg-primary text-primary-foreground rounded-lg py-3 font-bold hover:bg-primary/90 transition-colors"
-              >
-                {editingCategory ? "Update Category" : "Add Category"}
-              </button>
-              {editingCategory && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingCategory(null);
-                    setNewCategoryName("");
-                  }}
-                  className="w-full bg-gray-500 text-white rounded-lg py-3 font-bold hover:bg-gray-600 transition-colors"
-                >
-                  Cancel Edit
-                </button>
-              )}
-            </form>
-
-            <ul className="space-y-2">
-              {categories.map((cat) => (
-                <li key={cat.id} className="p-3 bg-secondary rounded-lg shadow-sm flex justify-between items-center">
-                  <span>{cat.name}</span>
-                  <div className="space-x-2">
-                    <button onClick={() => handleEditCategory(cat)} className="text-blue-400 hover:text-blue-600">Edit</button>
-                    <button onClick={() => handleDeleteCategory(cat.id)} className="text-red-400 hover:text-red-600">Delete</button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-
           {/* Question Management */}
           <div className="mt-8 max-w-lg mx-auto">
             <h2 className="text-xl font-bold mb-4">

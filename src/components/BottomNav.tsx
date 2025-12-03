@@ -17,7 +17,10 @@ export function BottomNav() {
 
   // Conditionally add the admin links if the user is an admin
   if (session?.user?.role === "admin") {
-    links.unshift({ href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard });
+    links.unshift(
+      { href: "/admin/questions", label: "Admin Qs", icon: HelpCircle }, // New admin questions link
+      { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }
+    );
   }
 
   return (

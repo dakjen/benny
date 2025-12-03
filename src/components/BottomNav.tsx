@@ -11,16 +11,16 @@ export function BottomNav() {
 
   const links = [
     { href: "/chat", label: "Chat", icon: MessageSquare },
-    { href: "/questions", label: "Questions", icon: HelpCircle },
+    {
+      href: session?.user?.role === "admin" ? "/admin/questions" : "/questions",
+      label: "Questions",
+      icon: HelpCircle,
+    },
     { href: "/help", label: "Help", icon: Info },
   ];
 
-  // Conditionally add the admin links if the user is an admin
   if (session?.user?.role === "admin") {
-    links.unshift(
-      { href: "/admin/questions", label: "Admin Qs", icon: HelpCircle }, // New admin questions link
-      { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }
-    );
+    links.unshift({ href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard });
   }
 
   return (

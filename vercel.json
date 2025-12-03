@@ -1,8 +1,11 @@
 {
   "builds": [
     {
-      "src": "next.config.ts",
-      "use": "@vercel/next"
+      "src": "package.json",
+      "use": "@vercel/next",
+      "config": {
+        "includeFiles": ["server.js"]
+      }
     },
     {
       "src": "server.js",
@@ -10,10 +13,6 @@
     }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
     {
       "src": "/socket.io/(.*)",
       "dest": "server.js"

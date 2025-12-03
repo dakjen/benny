@@ -36,8 +36,6 @@ let socket: Socket; // Declare socket outside to persist across re-renders
 
 export default function ChatPage() {
   const { data: session } = useSession();
-  console.log("ChatPage Session:", session);
-  console.log("ChatPage User Role:", session?.user?.role);
   const [activeTab, setActiveTab] = useState<"team" | "game">("game"); // Default to game chat for admin
   const [message, setMessage] = useState("");
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
@@ -45,10 +43,6 @@ export default function ChatPage() {
   const [localPlayerName, setLocalPlayerName] = useState<string | null>(null);
   const [localTeamId, setLocalTeamId] = useState<number | null>(null);
   const [localGameId, setLocalGameId] = useState<number | null>(null);
-  console.log("ChatPage Local Player ID:", localPlayerId);
-  console.log("ChatPage Local Player Name:", localPlayerName);
-  console.log("ChatPage Local Team ID:", localTeamId);
-  console.log("ChatPage Local Game ID:", localGameId);
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [allGames, setAllGames] = useState<Game[]>([]); // New state for all games
@@ -228,7 +222,10 @@ const getPlayerNameById = (playerId: number) => {
     return player ? player.name : "Unknown";
 };
 
-  if (session?.user?.role === "admin" || session?.user?.role === "judge") {
+  const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
+  const isPlayer = localPlayerId !== null && !isAdminOrJudge;
+
+  if (isAdminOrJudge) {
     const filteredTeams = allTeams.filter(team => team.gameId === selectedAdminGameId);
 
     return (
@@ -363,84 +360,91 @@ const getPlayerNameById = (playerId: number) => {
         </div>
       </div>
     );
+  } else if (isPlayer) {
+    return (
+      <div className="flex flex-col h-full bg-card text-foreground">
+        <header className="bg-background p-4 text-center z-10 shadow-md">
+          <h1 className="text-2xl font-permanent-marker">Chat</h1>
+        </header>
+        <div className="bg-card z-10 shadow-md">
+          <div className="flex">
+            <button
+              className={`flex-1 py-3 text-center font-bold ${
+                activeTab === "team"
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-gray-500"
+              }`}
+              onClick={() => setActiveTab("team")}
+            >
+              Team Chat
+            </button>
+            <button
+              className={`flex-1 py-3 text-center font-bold ${
+                activeTab === "game"
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-gray-500"
+              }`}
+              onClick={() => setActiveTab("game")}
+            >
+              Game Chat
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          {activeTab === "team" && (
+            <p className="text-center text-gray-500 mb-4">This chat holds only your team members</p>
+          )}
+          {activeTab === "game" && (
+            <p className="text-center text-gray-500 mb-4">This chat is with all game players</p>
+          )}
+          <div className="space-y-4">
+            {chatMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex items-end space-x-3 ${
+                  msg.sender === localPlayerId ? "flex-row-reverse" : ""
+                }`}
+              >
+                <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0"></div>
+                <div
+                  className={`p-3 rounded-2xl shadow ${
+                    msg.sender === localPlayerId
+                      ? "bg-primary rounded-br-none"
+                      : "bg-secondary rounded-bl-none"
+                  }`}
+                >
+                  <p className="font-bold text-sm">{getPlayerNameById(msg.sender)}</p>
+                  <p>{msg.message}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <form onSubmit={handleSendMessage} className="bg-card p-4 border-t border-border flex items-center">
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Type a message..."
+            className="flex-1 bg-input text-card-foreground border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          <button
+            type="submit"
+            className="ml-4 bg-primary text-primary-foreground rounded-full p-3 hover:bg-primary/90 transition-colors"
+          >
+            <Send className="h-5 w-5" />
+          </button>
+        </form>
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col h-full bg-card text-foreground">
-      <header className="bg-background p-4 text-center z-10 shadow-md">
-        <h1 className="text-2xl font-permanent-marker">Chat</h1>
-      </header>
-      <div className="bg-card z-10 shadow-md">
-        <div className="flex">
-          <button
-            className={`flex-1 py-3 text-center font-bold ${
-              activeTab === "team"
-                ? "border-b-2 border-primary text-primary"
-                : "text-gray-500"
-            }`}
-            onClick={() => setActiveTab("team")}
-          >
-            Team Chat
-          </button>
-          <button
-            className={`flex-1 py-3 text-center font-bold ${
-              activeTab === "game"
-                ? "border-b-2 border-primary text-primary"
-                : "text-gray-500"
-            }`}
-            onClick={() => setActiveTab("game")}
-          >
-            Game Chat
-          </button>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-4">
-        {activeTab === "team" && (
-          <p className="text-center text-gray-500 mb-4">This chat holds only your team members</p>
-        )}
-        {activeTab === "game" && (
-          <p className="text-center text-gray-500 mb-4">This chat is with all game players</p>
-        )}
-        <div className="space-y-4">
-          {chatMessages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex items-end space-x-3 ${
-                msg.sender === localPlayerId ? "flex-row-reverse" : ""
-              }`}
-            >
-              <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0"></div>
-              <div
-                className={`p-3 rounded-2xl shadow ${
-                  msg.sender === localPlayerId
-                    ? "bg-primary rounded-br-none"
-                    : "bg-secondary rounded-bl-none"
-                }`}
-              >
-                <p className="font-bold text-sm">{getPlayerNameById(msg.sender)}</p>
-                <p>{msg.message}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <form onSubmit={handleSendMessage} className="bg-card p-4 border-t border-border flex items-center">
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type a message..."
-          className="flex-1 bg-input text-card-foreground border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-        <button
-          type="submit"
-          className="ml-4 bg-primary text-primary-foreground rounded-full p-3 hover:bg-primary/90 transition-colors"
-        >
-          <Send className="h-5 w-5" />
-        </button>
-      </form>
+    <div className="flex flex-col h-full items-center justify-center bg-card text-foreground p-4">
+      <h1 className="text-2xl font-permanent-marker mb-4">Chat</h1>
+      <p className="text-center text-gray-500">Please join a game to access chat.</p>
     </div>
   );
 }

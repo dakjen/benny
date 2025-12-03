@@ -26,15 +26,12 @@ type Question = {
 
 export default function QuestionsPage() {
   const { data: session } = useSession();
-  console.log("QuestionsPage Session:", session);
-  console.log("QuestionsPage User Role:", session?.user?.role);
   const [games, setGames] = useState<Game[]>([]);
   const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<number[]>([]); // State to manage expanded categories
   const [localGameId, setLocalGameId] = useState<number | null>(null); // New state for player's game ID
-  console.log("QuestionsPage Local Game ID:", localGameId);
 
   // Admin-specific states (kept for now, will be moved or removed later if needed)
   const [newQuestionText, setNewQuestionText] = useState("");
@@ -123,7 +120,10 @@ export default function QuestionsPage() {
     }
   };
 
-  if (session?.user?.role === "admin") {
+  const isAdmin = session?.user?.role === "admin";
+  const isPlayer = localGameId !== null && !isAdmin;
+
+  if (isAdmin) {
     return (
       <div className="flex flex-col h-full bg-card text-foreground">
         <header className="bg-background p-4 text-center z-10 shadow-md">
@@ -186,50 +186,56 @@ export default function QuestionsPage() {
         </div>
       </div>
     );
+  } else if (isPlayer) {
+    return (
+      <div className="flex flex-col h-full bg-card text-foreground">
+        <header className="bg-background p-4 text-center z-10 shadow-md">
+          <h1 className="text-2xl font-permanent-marker">Questions</h1>
+        </header>
+
+        <div className="p-4">
+          {selectedGameId ? (
+            <div className="space-y-4">
+              {categories.map((category) => (
+                <div key={category.id} className="bg-secondary rounded-lg shadow-md">
+                  <button
+                    className="w-full flex justify-between items-center p-4 font-bold text-lg"
+                    onClick={() => toggleCategory(category.id)}
+                  >
+                    {category.name}
+                    {expandedCategories.includes(category.id) ? (
+                      <ChevronUp className="h-5 w-5" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5" />
+                    )}
+                  </button>
+                  {expandedCategories.includes(category.id) && (
+                    <ul className="p-4 border-t border-border space-y-2">
+                      {questions
+                        .filter((q) => q.categoryId === category.id)
+                        .map((question) => (
+                          <li key={question.id} className="p-3 bg-card rounded-lg shadow-sm">
+                            <p className="font-bold">{question.questionText}</p>
+                            <p className="text-sm text-gray-400">{question.points} points</p>
+                          </li>
+                        ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500 mt-8">Loading questions or no game selected.</p>
+          )}
+        </div>
+      </div>
+    );
   }
 
-  // Player-facing questions display
   return (
-    <div className="flex flex-col h-full bg-card text-foreground">
-      <header className="bg-background p-4 text-center z-10 shadow-md">
-        <h1 className="text-2xl font-permanent-marker">Questions</h1>
-      </header>
-
-      <div className="p-4">
-        {selectedGameId ? (
-          <div className="space-y-4">
-            {categories.map((category) => (
-              <div key={category.id} className="bg-secondary rounded-lg shadow-md">
-                <button
-                  className="w-full flex justify-between items-center p-4 font-bold text-lg"
-                  onClick={() => toggleCategory(category.id)}
-                >
-                  {category.name}
-                  {expandedCategories.includes(category.id) ? (
-                    <ChevronUp className="h-5 w-5" />
-                  ) : (
-                    <ChevronDown className="h-5 w-5" />
-                  )}
-                </button>
-                {expandedCategories.includes(category.id) && (
-                  <ul className="p-4 border-t border-border space-y-2">
-                    {questions
-                      .filter((q) => q.categoryId === category.id)
-                      .map((question) => (
-                        <li key={question.id} className="p-3 bg-card rounded-lg shadow-sm">
-                          <p className="font-bold">{question.questionText}</p>
-                          <p className="text-sm text-gray-400">{question.points} points</p>
-                        </li>
-                      ))}
-                  </ul>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-center text-gray-500 mt-8">Loading questions or no game selected.</p>
-        )}
-      </div>
+    <div className="flex flex-col h-full items-center justify-center bg-card text-foreground p-4">
+      <h1 className="text-2xl font-permanent-marker mb-4">Questions</h1>
+      <p className="text-center text-gray-500">Please join a game to access questions.</p>
     </div>
   );
 }

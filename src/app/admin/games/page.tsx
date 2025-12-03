@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 type Game = {
   id: number;
@@ -20,20 +21,8 @@ export default function AdminGamesPage() {
   const [newGameName, setNewGameName] = useState("");
   const [newGameAccessCode, setNewGameAccessCode] = useState(""); // New state for access code
   const [newTeamName, setNewTeamName] = useState("");
-  const [selectedGameId, setSelectedGameId] = useState<number | null>(() => {
-    if (typeof window !== 'undefined') {
-      const storedGameId = localStorage.getItem('selectedGameId');
-      return storedGameId ? Number(storedGameId) : null;
-    }
-    return null;
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [editingTeamId, setEditingTeamId] = useState<number | null>(null); // State for editing team
-  const [editedTeamName, setEditedTeamName] = useState(""); // State for edited team name
-  const [editingGameId, setEditingGameId] = useState<number | null>(null); // State for editing game
-  const [editedGameName, setEditedGameName] = useState(""); // State for edited game name
-  const [editedGameAccessCode, setEditedGameAccessCode] = useState(""); // State for edited game access code
+  const searchParams = useSearchParams();
+  const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
 
   const fetchGamesAndTeams = async () => {
     try {
@@ -41,10 +30,20 @@ export default function AdminGamesPage() {
       const gamesData = await gamesResponse.json();
       setGames(gamesData);
 
-      // If there's only one game, select it by default
-      if (gamesData.length === 1) {
-        setSelectedGameId(gamesData[0].id);
+      const gameIdFromUrl = searchParams.get('gameId');
+      let initialSelectedGameId: number | null = null;
+
+      if (gameIdFromUrl) {
+        initialSelectedGameId = Number(gameIdFromUrl);
+      } else if (typeof window !== 'undefined') {
+        const storedGameId = localStorage.getItem('selectedGameId');
+        initialSelectedGameId = storedGameId ? Number(storedGameId) : null;
       }
+
+      if (initialSelectedGameId === null && gamesData.length === 1) {
+        initialSelectedGameId = gamesData[0].id;
+      }
+      setSelectedGameId(initialSelectedGameId);
 
       const teamsResponse = await fetch("/api/admin/teams");
       const teamsData = await teamsResponse.json();
@@ -58,7 +57,7 @@ export default function AdminGamesPage() {
 
   useEffect(() => {
     fetchGamesAndTeams();
-  }, []);
+  }, [searchParams]); // Re-run when searchParams change
 
   // Effect to save selectedGameId to localStorage
   useEffect(() => {

@@ -67,7 +67,7 @@ export default async function AdminDashboardPage() {
           <h2 className="text-2xl font-bold mb-4">Games</h2> {/* Renamed to Games */}
           {isAdmin && (
             <>
-              <Link href="/admin/games">
+              <Link href={defaultGameId ? `/admin/games?gameId=${defaultGameId}` : "/admin/games"}>
                 <p className="text-primary hover:underline">Manage Games & Teams</p>
               </Link>
             </>

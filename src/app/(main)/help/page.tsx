@@ -28,7 +28,7 @@ export default function HelpPage() {
   const [localPlayerId, setLocalPlayerId] = useState<number | null>(null);
 
   // Placeholder for Admin User ID - This should ideally be fetched dynamically or from an env variable
-  const ADMIN_USER_ID = "admin_placeholder_id"; 
+  const ADMIN_USER_ID = process.env.NEXT_PUBLIC_ADMIN_HELP_ID; 
 
   useEffect(() => {
     // For regular players, get info from localStorage

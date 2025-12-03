@@ -65,8 +65,8 @@ export default function ChatPage() {
   // Socket.io connection and event listeners
   useEffect(() => {
     // Initialize socket connection
-    const socketUrl = window.location.origin;
-    socket = io(socketUrl); // Connect to your custom server
+    const vercelAppUrl = "https://benny-phi.vercel.app";
+    socket = io(vercelAppUrl); // Connect to your custom server on Vercel
 
     socket.on("connect", () => {
       console.log("Connected to socket.io server");

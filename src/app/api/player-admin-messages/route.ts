@@ -10,51 +10,65 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   let senderId = searchParams.get("senderId");
   let recipientId = searchParams.get("recipientId");
+  const adminFilterId = searchParams.get("adminFilterId"); // New: for admin's view to filter by specific admin
 
   if (!senderId || !recipientId) {
     return NextResponse.json({ message: "senderId and recipientId are required" }, { status: 400 });
   }
 
   try {
-    let actualAdminId: string | null = null;
     const adminUsers = await db.select().from(users).where(eq(users.role, "admin"));
-    if (adminUsers.length === 1) {
-      actualAdminId = adminUsers[0].id;
-    } else {
-      // If there's no single admin, we can't resolve "admin" as a recipient
-      if (recipientId === "admin" || senderId === "admin") {
-        return NextResponse.json(
-          { message: "Could not determine admin recipient. Ensure there is exactly one admin user." },
-          { status: 400 }
+    const adminIds = adminUsers.map(admin => admin.id);
+
+    let messages;
+    if (session?.user?.role === "admin" || session?.user?.role === "judge") {
+      // Admin/Judge view: fetch messages between selected player and (all or specific) admin(s)
+      const playerToAdminId = recipientId; // This is the player's ID
+
+      let conditions = [];
+      if (adminFilterId && adminFilterId !== "all") {
+        // Filter by a specific admin
+        conditions.push(
+          or(
+            and(eq(playerAdminMessages.senderId, adminFilterId), eq(playerAdminMessages.recipientId, playerToAdminId)),
+            and(eq(playerAdminMessages.senderId, playerToAdminId), eq(playerAdminMessages.recipientId, adminFilterId))
+          )
+        );
+      } else {
+        // Fetch messages involving the player and ANY admin, or player to "all_admins"
+        conditions.push(
+          or(
+            // Messages from player to specific admin
+            and(eq(playerAdminMessages.recipientId, playerToAdminId), inArray(playerAdminMessages.senderId, adminIds)),
+            // Messages from specific admin to player
+            and(eq(playerAdminMessages.senderId, playerToAdminId), inArray(playerAdminMessages.recipientId, adminIds)),
+            // Messages from player to all admins
+            and(eq(playerAdminMessages.senderId, playerToAdminId), eq(playerAdminMessages.recipientId, "all_admins")),
+            // Messages from all admins to player (this case is unlikely as admins respond as specific admin)
+            and(eq(playerAdminMessages.recipientId, playerToAdminId), eq(playerAdminMessages.senderId, "all_admins"))
+          )
         );
       }
-    }
+      messages = await db
+        .select()
+        .from(playerAdminMessages)
+        .where(and(...conditions))
+        .orderBy(playerAdminMessages.createdAt);
 
-    // Resolve "admin" recipientId to actual admin ID
-    if (recipientId === "admin" && actualAdminId) {
-      recipientId = actualAdminId;
-    }
-    // Resolve "admin" senderId to actual admin ID (for fetching messages where admin is sender)
-    if (senderId === "admin" && actualAdminId) {
-      senderId = actualAdminId;
-    }
+    } else {
+      // Player view: fetch messages between player and "all_admins" or specific admin responses
+      let playerConditions = [];
+      // Messages from player to "all_admins"
+      playerConditions.push(and(eq(playerAdminMessages.senderId, senderId), eq(playerAdminMessages.recipientId, "all_admins")));
+      // Messages from any admin to this player
+      playerConditions.push(and(inArray(playerAdminMessages.senderId, adminIds), eq(playerAdminMessages.recipientId, senderId)));
 
-    const messages = await db
-      .select()
-      .from(playerAdminMessages)
-      .where(
-        or(
-          and(
-            eq(playerAdminMessages.senderId, senderId),
-            eq(playerAdminMessages.recipientId, recipientId)
-          ),
-          and(
-            eq(playerAdminMessages.senderId, recipientId),
-            eq(playerAdminMessages.recipientId, senderId)
-          )
-        )
-      )
-      .orderBy(playerAdminMessages.createdAt);
+      messages = await db
+        .select()
+        .from(playerAdminMessages)
+        .where(or(...playerConditions))
+        .orderBy(playerAdminMessages.createdAt);
+    }
 
     return NextResponse.json(messages, { status: 200 });
   } catch (error) {
@@ -78,17 +92,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    // If recipientId is not provided, assume it's a player sending to the main admin
+    // If recipientId is not provided, assume it's a player sending to all admins
     if (!recipientId) {
-      const adminUsers = await db.select().from(users).where(eq(users.role, "admin"));
-      if (adminUsers.length === 1) {
-        recipientId = adminUsers[0].id;
-      } else {
-        return NextResponse.json(
-          { message: "Could not determine admin recipient. Ensure there is exactly one admin user." },
-          { status: 400 }
-        );
-      }
+      recipientId = "all_admins";
     }
 
     const newMessage = await db

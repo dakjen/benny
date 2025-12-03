@@ -26,7 +26,9 @@ export default function HelpPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [localPlayerId, setLocalPlayerId] = useState<number | null>(null);
-  const [adminUserId, setAdminUserId] = useState<string | null>(null); // State to store the resolved admin ID
+  const [adminUsers, setAdminUsers] = useState<any[]>([]); // State to store all admin users
+  const [selectedAdminFilterId, setSelectedAdminFilterId] = useState<string | null>("all"); // State for admin message filter
+  const [selectedAdminForSending, setSelectedAdminForSending] = useState<string | null>(null); // State for admin to choose their identity when sending
 
   useEffect(() => {
     // For regular players, get info from localStorage
@@ -34,18 +36,20 @@ export default function HelpPage() {
       setLocalPlayerId(Number(localStorage.getItem("playerId")));
     }
 
-    // Fetch the single admin's ID
-    const fetchAdminId = async () => {
-      const response = await fetch("/api/admin/users"); // This endpoint returns all users, including admin
+    // Fetch all admin users (for admin dropdown and for resolving designated admin)
+    const fetchAdminUsers = async () => {
+      const response = await fetch("/api/admin/users");
       if (response.ok) {
         const usersData = await response.json();
-        const admin = usersData.find((user: any) => user.role === "admin");
-        if (admin) {
-          setAdminUserId(admin.id);
+        const admins = usersData.filter((user: any) => user.role === "admin");
+        setAdminUsers(admins);
+        // Set default selected admin for sending to the logged-in admin's ID
+        if (session?.user?.role === "admin" || session?.user?.role === "judge") {
+          setSelectedAdminForSending(session.user.id);
         }
       }
     };
-    fetchAdminId();
+    fetchAdminUsers();
   }, [session]);
 
   // Fetch players for admin messaging (or for all users to resolve names)
@@ -63,25 +67,27 @@ export default function HelpPage() {
     const fetchMessages = async () => {
       let currentRecipientId: string | null = null;
       let currentSenderId: string | null = null;
+      let queryParams = "";
 
       if (session?.user?.role === "admin" || session?.user?.role === "judge") {
         if (selectedPlayer) {
-          currentRecipientId = selectedPlayer.id.toString();
-          currentSenderId = session.user.id;
+          currentRecipientId = selectedPlayer.id.toString(); // Player's ID
+          currentSenderId = "admin"; // Admin is viewing messages with this player
+          queryParams = `&adminFilterId=${selectedAdminFilterId}`;
         }
       } else if (localPlayerId) {
-        currentRecipientId = "admin"; // Player messages admin, backend will resolve
+        currentRecipientId = "all_admins"; // Player messages all admins
         currentSenderId = localPlayerId.toString();
       }
 
       if (!currentRecipientId || !currentSenderId) return;
 
-      const response = await fetch(`/api/player-admin-messages?senderId=${currentSenderId}&recipientId=${currentRecipientId}`);
+      const response = await fetch(`/api/player-admin-messages?senderId=${currentSenderId}&recipientId=${currentRecipientId}${queryParams}`);
       const data = await response.json();
       setMessages(data);
     };
     fetchMessages();
-  }, [session, selectedPlayer, localPlayerId, adminUserId]); // Add adminUserId to dependencies
+  }, [session, selectedPlayer, localPlayerId, selectedAdminFilterId]); // Add selectedAdminFilterId to dependencies
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,12 +97,12 @@ export default function HelpPage() {
     let currentSenderId: string | null = null;
 
     if (session?.user?.role === "admin" || session?.user?.role === "judge") {
-      if (selectedPlayer) {
+      if (selectedPlayer && selectedAdminForSending) {
         currentRecipientId = selectedPlayer.id.toString();
-        currentSenderId = session.user.id;
+        currentSenderId = selectedAdminForSending; // Admin sends as the selected identity
       }
     } else if (localPlayerId) {
-      // For player to admin message, omit recipientId and let backend resolve
+      currentRecipientId = "all_admins"; // Player messages all admins
       currentSenderId = localPlayerId.toString();
     }
 
@@ -133,8 +139,8 @@ export default function HelpPage() {
     if (session?.user?.id === senderId) return session.user.name;
     const player = players.find(p => p.id.toString() === senderId);
     if (player) return player.name;
-    // Fallback for admin if player is not found (e.g., if admin is the sender)
-    if (senderId === adminUserId) return "Admin"; // Use resolved adminUserId here
+    const admin = adminUsers.find(a => a.id === senderId); // Check if sender is an admin
+    if (admin) return admin.name;
     return "Unknown";
   };
 
@@ -163,6 +169,34 @@ export default function HelpPage() {
             </ul>
           </div>
           <div className="w-2/3 flex flex-col">
+            <div className="p-4 border-b border-border">
+              <h3 className="text-lg font-bold mb-2">Filter by Admin:</h3>
+              <select
+                value={selectedAdminFilterId || "all"}
+                onChange={(e) => setSelectedAdminFilterId(e.target.value)}
+                className="w-full bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="all">All Admins</option>
+                {adminUsers.map((admin) => (
+                  <option key={admin.id} value={admin.id}>
+                    {admin.name}
+                  </option>
+                ))}
+              </select>
+
+              <h3 className="text-lg font-bold mb-2">Respond as:</h3>
+              <select
+                value={selectedAdminForSending || ""}
+                onChange={(e) => setSelectedAdminForSending(e.target.value)}
+                className="w-full bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {adminUsers.map((admin) => (
+                  <option key={admin.id} value={admin.id}>
+                    {admin.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="flex-1 overflow-y-auto p-4">
               {messages.map((msg) => (
                 <div

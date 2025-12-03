@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Send } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { io, type Socket } from "socket.io-client"; // Import socket.io-client and Socket type
+import { supabase } from "@/lib/supabase"; // Import Supabase client
 
 type Message = {
   id: number;
   sender: number; // This will be player ID
   message: string;
-  teamId: number;
+  teamId: number | null;
   gameId: number;
   type: "team" | "game";
   createdAt: string;
@@ -32,7 +32,19 @@ type Game = {
   name: string;
 };
 
-let socket: Socket; // Declare socket outside to persist across re-renders
+// Helper to get player name from ID (moved outside component)
+const getPlayerNameByIdHelper = (
+  playerId: number,
+  localPlayerId: number | null,
+  localPlayerName: string | null,
+  allPlayers: Player[]
+) => {
+  if (playerId === localPlayerId && localPlayerName) {
+    return localPlayerName;
+  }
+  const player = allPlayers.find((p) => p.id === playerId);
+  return player ? player.name : "Unknown";
+};
 
 export default function ChatPage() {
   const { data: session } = useSession();
@@ -62,57 +74,38 @@ export default function ChatPage() {
     }
   }, [session]);
 
-  // Socket.io connection and event listeners
+  // Supabase Realtime subscription
   useEffect(() => {
-    // Initialize socket connection
-    socket = io(process.env.NEXT_PUBLIC_SOCKET_SERVER_URL || "http://localhost:3001"); // Connect to the separate socket server
+    const channel = supabase
+      .channel('chat_messages')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        const newMessage = payload.new as Message;
+        setChatMessages((prevMessages) => [...prevMessages, newMessage]);
+      })
+      .subscribe();
 
-    socket.on("connect", () => {
-      console.log("Connected to socket.io server");
-    });
+    // Fetch initial messages
+    const fetchInitialMessages = async () => {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .order('created_at', { ascending: true });
 
-    socket.on("message", (newMessage: Message) => {
-      console.log("Received new message:", newMessage);
-      setChatMessages((prevMessages) => [...prevMessages, newMessage]);
-    });
-
-    socket.on("disconnect", () => {
-      console.log("Disconnected from socket.io server");
-    });
-
-    // Cleanup on component unmount
-    return () => {
-      socket.disconnect();
-    };
-  }, []); // Empty dependency array means this runs once on mount and cleanup on unmount
-
-  // Join/Leave rooms based on activeTab and game/team IDs
-  useEffect(() => {
-    if (!socket) return;
-
-    let currentTeamId = localTeamId;
-    let currentGameId = localGameId;
-
-    if (session?.user?.role === "admin" || session?.user?.role === "judge") {
-      currentGameId = selectedAdminGameId;
-      if (activeTab === "team" && selectedTeamForAdminChat) {
-        currentTeamId = selectedTeamForAdminChat.id;
-      } else if (activeTab === "game") {
-        currentTeamId = null;
+      if (error) {
+        console.error('Error fetching initial messages:', error);
+      } else {
+        setChatMessages(data as Message[]);
       }
-    }
+    };
 
-    // Leave previous rooms before joining new ones
-    socket.emit("leaveRoom", { gameId: localGameId, teamId: localTeamId });
-    socket.emit("leaveRoom", { gameId: selectedAdminGameId, teamId: selectedTeamForAdminChat?.id });
+    fetchInitialMessages();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
 
-    if (activeTab === "game" && currentGameId) {
-      socket.emit("joinRoom", { gameId: currentGameId });
-    } else if (activeTab === "team" && currentTeamId) {
-      socket.emit("joinRoom", { teamId: currentTeamId });
-    }
-  }, [activeTab, localTeamId, localGameId, session, selectedAdminGameId, selectedTeamForAdminChat]);
 
 
   useEffect(() => {
@@ -189,15 +182,70 @@ export default function ChatPage() {
 
   console.log("allGames in render:", allGames);
 
-  // Helper to get player name from ID
-const getPlayerNameById = (playerId: number) => {
-    // If the message sender is the local player, use localPlayerName
-    if (playerId === localPlayerId && localPlayerName) {
-        return localPlayerName;
-    }
-    const player = allPlayers.find(p => p.id === playerId);
-    return player ? player.name : "Unknown";
-};
+  const getPlayerNameById = useCallback(
+    (playerId: number) =>
+      getPlayerNameByIdHelper(playerId, localPlayerId, localPlayerName, allPlayers),
+    [localPlayerId, localPlayerName, allPlayers]
+  );
+
+  const handleSendMessage = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (message.trim() === "") return;
+
+      let senderId: number | string | null = localPlayerId; // Can be player ID (number) or admin/judge user ID (string)
+      let senderName = localPlayerName;
+      let currentTeamId = localTeamId;
+      let currentGameId = localGameId;
+      let messageType = activeTab;
+
+      if (session?.user?.role === "admin" || session?.user?.role === "judge") {
+        senderId = session.user.id; // Use user ID for admin/judge
+        senderName = session.user.name ?? "";
+        currentGameId = selectedAdminGameId;
+        if (activeTab === "team" && selectedTeamForAdminChat) {
+          currentTeamId = selectedTeamForAdminChat.id;
+        } else if (activeTab === "game") {
+          currentTeamId = null;
+        }
+      }
+
+      if (!senderId || !senderName || !currentGameId || (messageType === "team" && !currentTeamId)) {
+        console.error("Missing sender info or game/team ID to send message.");
+        return;
+      }
+
+      const messageData = {
+        sender: senderId, // Send sender ID
+        sender_name: senderName, // Send sender name for display
+        message_text: message, // Message content
+        team_id: currentTeamId,
+        game_id: currentGameId,
+        type: messageType,
+        created_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase.from('messages').insert([messageData]);
+
+      if (error) {
+        console.error('Error sending message:', error);
+      } else {
+        setMessage("");
+      }
+    },
+    [
+      message,
+      localPlayerId,
+      localPlayerName,
+      localTeamId,
+      localGameId,
+      activeTab,
+      session,
+      selectedAdminGameId,
+      selectedTeamForAdminChat,
+      setMessage,
+    ]
+  );
 
   const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
   const isPlayer = localPlayerId !== null && !isAdminOrJudge;

@@ -9,17 +9,23 @@ import { authOptions } from "@/auth";
 
 export async function PUT(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: any // Using 'any' as a workaround for stubborn type inference issues
 ) {
-  const { params } = context;
-
   const session = await getServerSession(authOptions);
   if (!session || session.user?.role !== "admin") {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const categoryId = Number(params.id);
+    const idParam = context.params.id;
+    if (typeof idParam !== 'string') {
+      return NextResponse.json({ message: "Invalid category ID format." }, { status: 400 });
+    }
+    const categoryId = Number(idParam);
+    if (isNaN(categoryId)) {
+      return NextResponse.json({ message: "Invalid category ID." }, { status: 400 });
+    }
+
     const { name, isSequential, order } = await request.json();
 
     if (!name) {
@@ -52,17 +58,22 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: any // Using 'any' as a workaround for stubborn type inference issues
 ) {
-  const { params } = context;
-
   const session = await getServerSession(authOptions);
   if (!session || session.user?.role !== "admin") {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const categoryId = Number(params.id);
+    const idParam = context.params.id;
+    if (typeof idParam !== 'string') {
+      return NextResponse.json({ message: "Invalid category ID format." }, { status: 400 });
+    }
+    const categoryId = Number(idParam);
+    if (isNaN(categoryId)) {
+      return NextResponse.json({ message: "Invalid category ID." }, { status: 400 });
+    }
 
     const deletedCategory = await db
       .delete(categories)

@@ -143,127 +143,63 @@ export default function ChatPage() {
 
     
 
-          // New useEffect for assigning unique icons
+            // New useEffect for assigning unique icons
 
     
 
-          useEffect(() => {
+            useEffect(() => {
 
     
 
-            const newAssignedIcons = { ...assignedIcons };
+              const newAssignedIcons = { ...assignedIcons };
 
     
 
-            let changed = false;
+              let changed = false;
 
     
 
-        
+          
 
     
 
-            // Collect all sender IDs from chatMessages
+              // Collect all sender IDs from chatMessages
 
     
 
-            const senderIdsInChat = new Set(chatMessages.map(msg => msg.sender_id));
+              const senderIdsInChat = new Set(chatMessages.map(msg => msg.sender_id));
 
     
 
-        
+          
 
     
 
-            // Iterate through each sender in the chat
+              // Iterate through each sender in the chat
 
     
 
-            senderIdsInChat.forEach(senderId => {
+              senderIdsInChat.forEach(senderId => {
 
     
 
-              const isAdminSender = adminUsers.some(admin => admin.id === senderId);
+                if (!newAssignedIcons[senderId]) { // Only assign if not already assigned
 
     
 
-        
+                  const isAdminSender = adminUsers.some(admin => admin.id === senderId);
 
     
 
-              if (isAdminSender) {
+          
 
     
 
-                // Admins ALWAYS get the adminIcon
+                  if (isAdminSender) {
 
     
 
-                if (newAssignedIcons[senderId] !== adminIcon) {
-
-    
-
-                  newAssignedIcons[senderId] = adminIcon;
-
-    
-
-                  changed = true;
-
-    
-
-                }
-
-    
-
-              } else {
-
-    
-
-                // Only assign if not already assigned, or if it was previously an admin icon (and now they are not admin)
-
-    
-
-                if (!newAssignedIcons[senderId] || newAssignedIcons[senderId] === adminIcon) {
-
-    
-
-                            // Find an unused regular icon
-
-    
-
-                            const currentlyUsedRegularIcons = new Set(
-
-    
-
-                              regularIcons.filter(icon => Object.values(newAssignedIcons).includes(icon))
-
-    
-
-                            );
-
-    
-
-                            const availableIcons = regularIcons.filter(icon => !currentlyUsedRegularIcons.has(icon));
-
-    
-
-        
-
-    
-
-                  let iconToAssign;
-
-    
-
-                  if (availableIcons.length > 0) {
-
-    
-
-                    // Assign the first available unique icon
-
-    
-
-                    iconToAssign = availableIcons[0];
+                    newAssignedIcons[senderId] = adminIcon;
 
     
 
@@ -271,27 +207,71 @@ export default function ChatPage() {
 
     
 
-                    // Fallback: all unique icons are used, cycle through them based on hash
+                    // Find an unused regular icon
 
     
 
-                    const hash = senderId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                    const currentlyUsedRegularIcons = new Set(
 
     
 
-                    const index = hash % regularIcons.length;
+                      regularIcons.filter(icon => Object.values(newAssignedIcons).includes(icon))
 
     
 
-                    iconToAssign = regularIcons[index];
+                    );
+
+    
+
+                    const availableIcons = regularIcons.filter(icon => !currentlyUsedRegularIcons.has(icon));
+
+    
+
+          
+
+    
+
+                    let iconToAssign;
+
+    
+
+                    if (availableIcons.length > 0) {
+
+    
+
+                      // Assign the first available unique icon
+
+    
+
+                      iconToAssign = availableIcons[0];
+
+    
+
+                    } else {
+
+    
+
+                      // Fallback: all regular icons are used, cycle through them based on hash
+
+    
+
+                      const hash = senderId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
+    
+
+                      const index = hash % regularIcons.length;
+
+    
+
+                      newAssignedIcons[senderId] = regularIcons[index];
+
+    
+
+                    }
 
     
 
                   }
-
-    
-
-                  newAssignedIcons[senderId] = iconToAssign;
 
     
 
@@ -303,31 +283,27 @@ export default function ChatPage() {
 
     
 
+              });
+
+    
+
+          
+
+    
+
+              if (changed) {
+
+    
+
+                setAssignedIcons(newAssignedIcons);
+
+    
+
               }
 
     
 
-            });
-
-    
-
-        
-
-    
-
-            if (changed) {
-
-    
-
-              setAssignedIcons(newAssignedIcons);
-
-    
-
-            }
-
-    
-
-          }, [chatMessages, adminUsers, assignedIcons]); // Dependencies
+            }, [chatMessages, adminUsers, assignedIcons]); // Dependencies
 
     
 

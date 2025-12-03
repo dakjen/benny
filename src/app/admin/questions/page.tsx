@@ -16,6 +16,8 @@ type Category = {
   id: number;
   name: string;
   gameId: number;
+  isSequential: boolean; // New
+  order: number; // New
 };
 
 type Game = {
@@ -36,6 +38,8 @@ export default function AdminQuestionsPage() {
 
   // State for managing categories
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryIsSequential, setNewCategoryIsSequential] = useState(false); // New state for isSequential
+  const [newCategoryOrder, setNewCategoryOrder] = useState(0); // New state for order
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
   const searchParams = useSearchParams();
@@ -149,16 +153,25 @@ export default function AdminQuestionsPage() {
     await fetch("/api/admin/categories", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newCategoryName, gameId: selectedGameId }),
+      body: JSON.stringify({
+        name: newCategoryName,
+        gameId: selectedGameId,
+        isSequential: newCategoryIsSequential,
+        order: newCategoryOrder,
+      }),
     });
 
     fetchCategories(selectedGameId);
     setNewCategoryName("");
+    setNewCategoryIsSequential(false);
+    setNewCategoryOrder(0);
   };
 
   const handleEditCategory = (category: Category) => {
     setEditingCategory(category);
     setNewCategoryName(category.name);
+    setNewCategoryIsSequential(category.isSequential);
+    setNewCategoryOrder(category.order);
   };
 
   const handleUpdateCategory = async (e: React.FormEvent) => {
@@ -168,12 +181,18 @@ export default function AdminQuestionsPage() {
     await fetch(`/api/admin/categories/${editingCategory.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newCategoryName }),
+      body: JSON.stringify({
+        name: newCategoryName,
+        isSequential: newCategoryIsSequential,
+        order: newCategoryOrder,
+      }),
     });
 
     fetchCategories(selectedGameId);
     setEditingCategory(null);
     setNewCategoryName("");
+    setNewCategoryIsSequential(false);
+    setNewCategoryOrder(0);
   };
 
   const handleDeleteCategory = async (id: number) => {
@@ -219,7 +238,7 @@ export default function AdminQuestionsPage() {
         <p className="text-center text-red-500 text-2xl font-bold mt-8">NO GAME SELECTED</p>
       )}
 
-      {/* Category Management - TEMPORARILY ALWAYS RENDERED FOR DIAGNOSIS */}
+      {/* Category Management */}
       <div className="mt-8 max-w-lg mx-auto">
         <h2 className="text-xl font-bold mb-4">Manage Categories</h2>
         <form onSubmit={editingCategory ? handleUpdateCategory : handleAddCategory} className="space-y-4 mb-4">
@@ -228,6 +247,24 @@ export default function AdminQuestionsPage() {
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
             placeholder="Category Name"
+            className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+            required
+          />
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="isSequential"
+              checked={newCategoryIsSequential}
+              onChange={(e) => setNewCategoryIsSequential(e.target.checked)}
+              className="form-checkbox h-5 w-5 text-primary rounded"
+            />
+            <label htmlFor="isSequential" className="text-card-foreground">Sequential Category</label>
+          </div>
+          <input
+            type="number"
+            value={newCategoryOrder}
+            onChange={(e) => setNewCategoryOrder(Number(e.target.value))}
+            placeholder="Order"
             className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
             required
           />
@@ -243,6 +280,8 @@ export default function AdminQuestionsPage() {
               onClick={() => {
                 setEditingCategory(null);
                 setNewCategoryName("");
+                setNewCategoryIsSequential(false);
+                setNewCategoryOrder(0);
               }}
               className="w-full bg-gray-500 text-white rounded-lg py-3 font-bold hover:bg-gray-600 transition-colors"
             >
@@ -255,7 +294,7 @@ export default function AdminQuestionsPage() {
           <ul className="space-y-2">
             {categories.map((cat) => (
               <li key={cat.id} className="p-3 bg-secondary rounded-lg shadow-sm flex justify-between items-center">
-                <span>{cat.name}</span>
+                <span>{cat.name} (Order: {cat.order}) {cat.isSequential && "(Sequential)"}</span>
                 <div className="space-x-2">
                   <button onClick={() => handleEditCategory(cat)} className="text-blue-400 hover:text-blue-600">Edit</button>
                   <button onClick={() => handleDeleteCategory(cat.id)} className="text-red-400 hover:text-red-600">Delete</button>

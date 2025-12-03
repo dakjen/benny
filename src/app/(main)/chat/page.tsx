@@ -120,10 +120,18 @@ export default function ChatPage() {
     const fetchData = async () => {
       try {
         const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
+        const currentActiveGameId = isAdminOrJudge ? selectedAdminGameId : localGameId;
 
-        const playersApiUrl = isAdminOrJudge ? "/api/admin/players" : "/api/public/players";
-        const teamsApiUrl = isAdminOrJudge ? "/api/admin/teams" : "/api/public/teams";
-        const gamesApiUrl = isAdminOrJudge ? "/api/admin/games" : "/api/public/games";
+        if (!currentActiveGameId) {
+          setAllPlayers([]);
+          setAllTeams([]);
+          setAllGames([]);
+          return;
+        }
+
+        const playersApiUrl = isAdminOrJudge ? `/api/admin/players?gameId=${currentActiveGameId}` : `/api/public/players?gameId=${currentActiveGameId}`;
+        const teamsApiUrl = isAdminOrJudge ? `/api/admin/teams?gameId=${currentActiveGameId}` : `/api/public/teams?gameId=${currentActiveGameId}`;
+        const gamesApiUrl = isAdminOrJudge ? "/api/admin/games" : "/api/public/games"; // Games API for public doesn't need gameId for all games
 
         const playersResponse = await fetch(playersApiUrl);
         if (!playersResponse.ok) {
@@ -141,7 +149,7 @@ export default function ChatPage() {
         console.log("Fetched players data:", playersData);
         setAllPlayers(playersData);
 
-        const teamsResponse = await fetch("/api/teams");
+        const teamsResponse = await fetch(teamsApiUrl);
         if (!teamsResponse.ok) {
           const errorText = await teamsResponse.text();
           console.error("Failed to fetch teams:", teamsResponse.status, teamsResponse.statusText, errorText);
@@ -157,7 +165,7 @@ export default function ChatPage() {
         console.log("Fetched teams data:", teamsData);
         setAllTeams(teamsData);
 
-        const gamesResponse = await fetch("/api/admin/games"); // Fetch all games for admin/judge
+        const gamesResponse = await fetch(gamesApiUrl); // Fetch all games for admin/judge
         if (!gamesResponse.ok) {
           const errorText = await gamesResponse.text();
           console.error("Failed to fetch games:", gamesResponse.status, gamesResponse.statusText, errorText);
@@ -177,7 +185,7 @@ export default function ChatPage() {
       }
     };
     fetchData();
-  }, []);
+  }, [session, localGameId, selectedAdminGameId]);
 
   useEffect(() => {
     const fetchMessages = async () => {

@@ -11,17 +11,19 @@ import {
 // New categories table
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
+  name: text("name").notNull(),
   gameId: integer("game_id")
     .notNull()
-    .references(() => games.id, { onDelete: "cascade" }), // Categories are game-specific
+    .references(() => games.id, { onDelete: "cascade" }),
+  isSequential: boolean("is_sequential").notNull().default(false), // New: Indicates if category is part of a sequential flow
+  order: integer("order").notNull().default(0), // New: Order of the category within a game
 });
 
 // Existing tables
 export const questions = pgTable("questions", {
   id: serial("id").primaryKey(),
   questionText: text("question_text").notNull(),
-  categoryId: integer("category_id") // New: Reference to categories table
+  categoryId: integer("category_id")
     .references(() => categories.id, { onDelete: "set null" }),
   expectedAnswer: text("expected_answer"),
   gameId: integer("game_id")
@@ -32,7 +34,7 @@ export const questions = pgTable("questions", {
 
 export const directMessages = pgTable("direct_messages", {
   id: serial("id").primaryKey(),
-  sender: text("sender").notNull(), // This will be player ID
+  sender: text("sender").notNull(),
   message: text("message").notNull(),
   teamId: integer("team_id")
     .notNull()
@@ -40,7 +42,7 @@ export const directMessages = pgTable("direct_messages", {
   gameId: integer("game_id")
     .notNull()
     .references(() => games.id, { onDelete: "cascade" }),
-  type: text("type", { enum: ["team", "game"] }).notNull(), // "team" or "game" chat
+  type: text("type", { enum: ["team", "game"] }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -49,7 +51,7 @@ export const directMessages = pgTable("direct_messages", {
 export const games = pgTable("games", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
-  accessCode: text("access_code").unique(), // Changed to nullable
+  accessCode: text("access_code").unique(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -72,6 +74,8 @@ export const players = pgTable("players", {
   gameId: integer("game_id")
     .notNull()
     .references(() => games.id, { onDelete: "cascade" }),
+  currentCategoryId: integer("current_category_id").references(() => categories.id, { onDelete: "set null" }), // New: Player's current active category
+  completedCategories: text("completed_categories").default("[]").notNull(), // New: JSON string of completed category IDs
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .$defaultFn(() => new Date()),

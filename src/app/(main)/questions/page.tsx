@@ -13,6 +13,8 @@ type Category = {
   id: number;
   name: string;
   gameId: number;
+  isSequential: boolean; // New
+  order: number; // New
 };
 
 type Question = {
@@ -24,25 +26,43 @@ type Question = {
   points: number;
 };
 
+type Submission = {
+  id: number;
+  playerId: number;
+  questionId: number;
+  status: "pending" | "graded";
+  score: number | null;
+};
+
 export default function QuestionsPage() {
   const { data: session } = useSession();
   const [games, setGames] = useState<Game[]>([]);
   const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [expandedCategories, setExpandedCategories] = useState<number[]>([]); // State to manage expanded categories
-  const [localGameId, setLocalGameId] = useState<number | null>(null); // New state for player's game ID
+  const [expandedCategories, setExpandedCategories] = useState<number[]>([]);
+  const [localGameId, setLocalGameId] = useState<number | null>(null);
+  const [localPlayerId, setLocalPlayerId] = useState<number | null>(null); // New state for player ID from localStorage
+
+  // New states for player progress
+  const [playerCurrentCategoryId, setPlayerCurrentCategoryId] = useState<number | null>(null);
+  const [playerCompletedCategories, setPlayerCompletedCategories] = useState<number[]>([]);
+  const [allSubmissions, setAllSubmissions] = useState<Submission[]>([]);
 
   // Admin-specific states (kept for now, will be moved or removed later if needed)
   const [newQuestionText, setNewQuestionText] = useState("");
   const [newQuestionPoints, setNewQuestionPoints] = useState(0);
 
-  // Get localGameId from localStorage for players
+  // Get localGameId and localPlayerId from localStorage for players
   useEffect(() => {
     if (!session?.user) { // Only for players not logged in via session
       const storedGameId = localStorage.getItem("gameId");
+      const storedPlayerId = localStorage.getItem("playerId");
       if (storedGameId) {
         setLocalGameId(Number(storedGameId));
+      }
+      if (storedPlayerId) {
+        setLocalPlayerId(Number(storedPlayerId));
       }
     }
   }, [session]);
@@ -92,7 +112,7 @@ export default function QuestionsPage() {
           const questionsApiUrl = isAdmin ? `/api/admin/questions?gameId=${selectedGameId}` : `/api/public/questions?gameId=${selectedGameId}`;
 
           // Fetch categories
-          const categoriesResponse = await fetch(categoriesApiUrl); // Assuming this API is accessible
+          const categoriesResponse = await fetch(categoriesApiUrl);
           if (!categoriesResponse.ok) {
             const errorText = await categoriesResponse.text();
             console.error("Failed to fetch categories:", categoriesResponse.status, categoriesResponse.statusText, errorText);
@@ -104,11 +124,10 @@ export default function QuestionsPage() {
             console.error("Categories API did not return JSON:", errorText);
             throw new Error("Categories API did not return JSON.");
           }
-          const categoriesData = await categoriesResponse.json();
-          setCategories(categoriesData.filter((cat: Category) => cat.gameId === selectedGameId));
+          let categoriesData = await categoriesResponse.json();
 
           // Fetch questions
-          const questionsResponse = await fetch(`/api/public/questions?gameId=${selectedGameId}`); // Assuming this API is accessible
+          const questionsResponse = await fetch(questionsApiUrl);
           if (!questionsResponse.ok) {
             const errorText = await questionsResponse.text();
             console.error("Failed to fetch questions:", questionsResponse.status, questionsResponse.statusText, errorText);
@@ -120,7 +139,73 @@ export default function QuestionsPage() {
             console.error("Questions API did not return JSON:", errorText);
             throw new Error("Questions API did not return JSON.");
           }
-          const questionsData = await questionsResponse.json();
+          let questionsData = await questionsResponse.json();
+
+          // Filter categories and questions based on gameId
+          categoriesData = categoriesData.filter((cat: Category) => cat.gameId === selectedGameId);
+          questionsData = questionsData.filter((q: Question) => q.gameId === selectedGameId);
+
+          // Player-specific logic for sequential categories
+          if (!isAdmin && localPlayerId) {
+            // Fetch player progress
+            const playerProgressResponse = await fetch(`/api/public/player-progress?playerId=${localPlayerId}`);
+            if (playerProgressResponse.ok) {
+              const playerProgressData = await playerProgressResponse.json();
+              setPlayerCurrentCategoryId(playerProgressData.currentCategoryId);
+              setPlayerCompletedCategories(JSON.parse(playerProgressData.completedCategories || "[]"));
+            } else {
+              console.error("Failed to fetch player progress.");
+              setPlayerCurrentCategoryId(null);
+              setPlayerCompletedCategories([]);
+            }
+
+            // Fetch player submissions
+            const submissionsResponse = await fetch(`/api/public/submissions?playerId=${localPlayerId}`);
+            if (submissionsResponse.ok) {
+              const submissionsData = await submissionsResponse.json();
+              setAllSubmissions(submissionsData);
+            } else {
+              console.error("Failed to fetch player submissions.");
+              setAllSubmissions([]);
+            }
+
+            // Determine if there are any sequential categories in this game
+            const gameHasSequentialCategories = categoriesData.some((cat: Category) => cat.isSequential);
+
+            if (gameHasSequentialCategories) {
+              // If playerCurrentCategoryId is null, find the first uncompleted sequential category
+              if (playerProgressData.currentCategoryId === null) {
+                const firstUncompletedSequentialCategory = categoriesData
+                  .filter((cat: Category) => cat.isSequential && !playerCompletedCategories.includes(cat.id))
+                  .sort((a: Category, b: Category) => a.order - b.order)[0];
+
+                if (firstUncompletedSequentialCategory) {
+                  setPlayerCurrentCategoryId(firstUncompletedSequentialCategory.id);
+                  // Also update the backend to set this as the current category
+                  await fetch("/api/public/player-progress", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      playerId: localPlayerId,
+                      currentCategoryId: firstUncompletedSequentialCategory.id,
+                    }),
+                  });
+                }
+              }
+
+              // Filter categories to only show the current one if sequential
+              if (playerCurrentCategoryId !== null) {
+                categoriesData = categoriesData.filter((cat: Category) => cat.id === playerCurrentCategoryId);
+                questionsData = questionsData.filter((q: Question) => q.categoryId === playerCurrentCategoryId);
+              } else {
+                // If no current category is set, and there are sequential categories, show nothing
+                categoriesData = [];
+                questionsData = [];
+              }
+            }
+          }
+
+          setCategories(categoriesData);
           setQuestions(questionsData);
         } catch (error) {
           console.error("Error fetching categories or questions:", error);
@@ -128,7 +213,7 @@ export default function QuestionsPage() {
       };
       fetchCategoriesAndQuestions();
     }
-  }, [selectedGameId]);
+  }, [selectedGameId, session, localPlayerId, playerCurrentCategoryId, playerCompletedCategories]); // Added dependencies
 
   const toggleCategory = (categoryId: number) => {
     setExpandedCategories((prev) =>
@@ -136,6 +221,41 @@ export default function QuestionsPage() {
         ? prev.filter((id) => id !== categoryId)
         : [...prev, categoryId]
     );
+  };
+
+  // Helper to check if all questions in a category are graded
+  const isCategoryComplete = (categoryId: number) => {
+    const questionsInCategory = questions.filter(q => q.categoryId === categoryId);
+    if (questionsInCategory.length === 0) return false; // A category with no questions isn't "complete"
+
+    return questionsInCategory.every(q =>
+      allSubmissions.some(s => s.questionId === q.id && s.status === "graded")
+    );
+  };
+
+  const handleCompleteCategory = async (categoryId: number) => {
+    if (!localPlayerId || !selectedGameId) return;
+
+    // Call the API to update player progress
+    const response = await fetch("/api/public/player-progress", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        playerId: localPlayerId,
+        completedCategoryId: categoryId,
+      }),
+    });
+
+    if (response.ok) {
+      // Re-fetch categories and questions to update the UI with the next category
+      // This will trigger the useEffect that fetches categories and questions
+      // and update playerCurrentCategoryId and playerCompletedCategories
+      // based on the response from the player-progress API.
+      // For now, we can just re-trigger the fetch.
+      // This will be handled by the useEffect that depends on playerCurrentCategoryId and playerCompletedCategories
+    } else {
+      console.error("Failed to complete category.");
+    }
   };
 
   // Admin-specific logic (kept for now)
@@ -234,6 +354,9 @@ export default function QuestionsPage() {
       </div>
     );
   } else if (isPlayer) {
+    const currentCategory = categories.find(cat => cat.id === playerCurrentCategoryId);
+    const isCurrentCategoryComplete = currentCategory ? isCategoryComplete(currentCategory.id) : false;
+
     return (
       <div className="flex flex-col h-full bg-card text-foreground">
         <header className="bg-background p-4 text-center z-10 shadow-md">
@@ -243,23 +366,23 @@ export default function QuestionsPage() {
         <div className="p-4">
           {selectedGameId ? (
             <div className="space-y-4">
-              {categories.map((category) => (
-                <div key={category.id} className="bg-secondary rounded-lg shadow-md">
+              {currentCategory ? (
+                <div key={currentCategory.id} className="bg-secondary rounded-lg shadow-md">
                   <button
                     className="w-full flex justify-between items-center p-4 font-bold text-lg"
-                    onClick={() => toggleCategory(category.id)}
+                    onClick={() => toggleCategory(currentCategory.id)}
                   >
-                    {category.name}
-                    {expandedCategories.includes(category.id) ? (
+                    {currentCategory.name}
+                    {expandedCategories.includes(currentCategory.id) ? (
                       <ChevronUp className="h-5 w-5" />
                     ) : (
                       <ChevronDown className="h-5 w-5" />
                     )}
                   </button>
-                  {expandedCategories.includes(category.id) && (
+                  {expandedCategories.includes(currentCategory.id) && (
                     <ul className="p-4 border-t border-border space-y-2">
                       {questions
-                        .filter((q) => q.categoryId === category.id)
+                        .filter((q) => q.categoryId === currentCategory.id)
                         .map((question) => (
                           <li key={question.id} className="p-3 bg-card rounded-lg shadow-sm">
                             <p className="font-bold">{question.questionText}</p>
@@ -268,8 +391,18 @@ export default function QuestionsPage() {
                         ))}
                     </ul>
                   )}
+                  {isCurrentCategoryComplete && (
+                    <button
+                      onClick={() => handleCompleteCategory(currentCategory.id)}
+                      className="w-full bg-green-500 text-white rounded-b-lg py-3 font-bold hover:bg-green-600 transition-colors mt-2"
+                    >
+                      Complete Category & Next
+                    </button>
+                  )}
                 </div>
-              ))}
+              ) : (
+                <p className="text-center text-gray-500 mt-8">No active category or all categories completed.</p>
+              )}
             </div>
           ) : (
             <p className="text-center text-gray-500 mt-8">Loading questions or no game selected.</p>

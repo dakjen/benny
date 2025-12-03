@@ -20,7 +20,7 @@ export async function PUT(
 
   try {
     const categoryId = Number(params.id);
-    const { name } = await request.json();
+    const { name, isSequential, order } = await request.json();
 
     if (!name) {
       return NextResponse.json({ message: "Category name is required." }, { status: 400 });
@@ -28,7 +28,11 @@ export async function PUT(
 
     const updatedCategory = await db
       .update(categories)
-      .set({ name })
+      .set({ 
+        name,
+        isSequential: isSequential,
+        order: order,
+      })
       .where(eq(categories.id, categoryId))
       .returning();
 

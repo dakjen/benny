@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { name, gameId } = await request.json();
+    const { name, gameId, isSequential, order } = await request.json();
 
     if (!name || !gameId) {
       return NextResponse.json(
@@ -44,6 +44,8 @@ export async function POST(request: Request) {
       .values({
         name,
         gameId,
+        isSequential: isSequential ?? false, // Default to false if not provided
+        order: order ?? 0, // Default to 0 if not provided
       })
       .returning();
 

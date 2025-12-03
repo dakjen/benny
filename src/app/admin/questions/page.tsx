@@ -60,11 +60,13 @@ export default function AdminQuestionsPage() {
   };
 
   useEffect(() => {
-    fetchGames();
-  }, []);
+    const gameIdFromUrl = searchParams.get('gameId');
+    fetchGames(gameIdFromUrl);
+  }, [searchParams]);
 
   useEffect(() => {
     if (selectedGameId) {
+      console.log("Selected Game ID:", selectedGameId); // Debug log
       fetchCategories(selectedGameId);
       fetchQuestions(selectedGameId);
     }
@@ -173,7 +175,7 @@ export default function AdminQuestionsPage() {
     await fetch(`/api/admin/categories/${id}`, {
       method: "DELETE",
     });
-    fetchCategories(selectedGameId);
+    fetchQuestions(selectedGameId);
   };
 
   const getCategoryName = (categoryId: number | null) => {

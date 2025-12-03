@@ -65,7 +65,8 @@ export default function ChatPage() {
   // Socket.io connection and event listeners
   useEffect(() => {
     // Initialize socket connection
-    socket = io("http://localhost:3000"); // Connect to your custom server
+    const socketUrl = process.env.NODE_ENV === "production" ? window.location.origin : "http://localhost:3000";
+    socket = io(socketUrl); // Connect to your custom server
 
     socket.on("connect", () => {
       console.log("Connected to socket.io server");

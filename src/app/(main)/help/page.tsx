@@ -48,16 +48,14 @@ export default function HelpPage() {
     fetchAdminId();
   }, [session]);
 
-  // Fetch players for admin messaging
+  // Fetch players for admin messaging (or for all users to resolve names)
   useEffect(() => {
-    if (session?.user?.role === "admin" || session?.user?.role === "judge") {
-      const fetchPlayers = async () => {
-        const response = await fetch("/api/players");
-        const data = await response.json();
-        setPlayers(data);
-      };
-      fetchPlayers();
-    }
+    const fetchPlayers = async () => {
+      const response = await fetch("/api/players");
+      const data = await response.json();
+      setPlayers(data);
+    };
+    fetchPlayers();
   }, [session]);
 
   // Fetch messages for chat

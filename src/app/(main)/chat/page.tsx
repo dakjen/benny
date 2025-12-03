@@ -114,50 +114,51 @@ export default function ChatPage() {
         const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
         const currentActiveGameId = isAdminOrJudge ? selectedAdminGameId : localGameId;
 
-        if (!currentActiveGameId) {
-          setAllPlayers([]);
-          setAllTeams([]);
-          setAllGames([]);
-          return;
-        }
-
         const playersApiUrl = isAdminOrJudge ? `/api/admin/players?gameId=${currentActiveGameId}` : `/api/public/players?gameId=${currentActiveGameId}`;
         const teamsApiUrl = isAdminOrJudge ? `/api/admin/teams?gameId=${currentActiveGameId}` : `/api/public/teams?gameId=${currentActiveGameId}`;
         const gamesApiUrl = isAdminOrJudge ? "/api/admin/games" : "/api/public/games"; // Games API for public doesn't need gameId for all games
 
-        const playersResponse = await fetch(playersApiUrl);
-        if (!playersResponse.ok) {
-          const errorText = await playersResponse.text();
-          console.error("Failed to fetch players:", playersResponse.status, playersResponse.statusText, errorText);
-          throw new Error(`Failed to fetch players: ${playersResponse.statusText}`);
-        }
-        const playersContentType = playersResponse.headers.get('content-type');
-        if (!playersContentType || !playersContentType.includes('application/json')) {
-          const errorText = await playersResponse.text();
-          console.error("Players API did not return JSON:", errorText);
-          throw new Error("Players API did not return JSON.");
-        }
-        const playersData = await playersResponse.json();
-        console.log("Fetched players data:", playersData);
-        setAllPlayers(playersData);
+        // Only fetch players and teams if a game is selected or if it's a player
+        if (currentActiveGameId || !isAdminOrJudge) {
+          const playersResponse = await fetch(playersApiUrl);
+          if (!playersResponse.ok) {
+            const errorText = await playersResponse.text();
+            console.error("Failed to fetch players:", playersResponse.status, playersResponse.statusText, errorText);
+            throw new Error(`Failed to fetch players: ${playersResponse.statusText}`);
+          }
+          const playersContentType = playersResponse.headers.get('content-type');
+          if (!playersContentType || !playersContentType.includes('application/json')) {
+            const errorText = await playersResponse.text();
+            console.error("Players API did not return JSON:", errorText);
+            throw new Error("Players API did not return JSON.");
+          }
+          const playersData = await playersResponse.json();
+          console.log("Fetched players data:", playersData);
+          setAllPlayers(playersData);
 
-        const teamsResponse = await fetch(teamsApiUrl);
-        if (!teamsResponse.ok) {
-          const errorText = await teamsResponse.text();
-          console.error("Failed to fetch teams:", teamsResponse.status, teamsResponse.statusText, errorText);
-          throw new Error(`Failed to fetch teams: ${teamsResponse.statusText}`);
+          const teamsResponse = await fetch(teamsApiUrl);
+          if (!teamsResponse.ok) {
+            const errorText = await teamsResponse.text();
+            console.error("Failed to fetch teams:", teamsResponse.status, teamsResponse.statusText, errorText);
+            throw new Error(`Failed to fetch teams: ${teamsResponse.statusText}`);
+          }
+          const teamsContentType = teamsResponse.headers.get('content-type');
+          if (!teamsContentType || !teamsContentType.includes('application/json')) {
+            const errorText = await teamsResponse.text();
+            console.error("Teams API did not return JSON:", errorText);
+            throw new Error("Teams API did not return JSON.");
+          }
+          const teamsData = await teamsResponse.json();
+          console.log("Fetched teams data:", teamsData);
+          setAllTeams(teamsData);
+        } else {
+          // Clear players and teams if no game is selected for admin
+          setAllPlayers([]);
+          setAllTeams([]);
         }
-        const teamsContentType = teamsResponse.headers.get('content-type');
-        if (!teamsContentType || !teamsContentType.includes('application/json')) {
-          const errorText = await teamsResponse.text();
-          console.error("Teams API did not return JSON:", errorText);
-          throw new Error("Teams API did not return JSON.");
-        }
-        const teamsData = await teamsResponse.json();
-        console.log("Fetched teams data:", teamsData);
-        setAllTeams(teamsData);
 
-        const gamesResponse = await fetch(gamesApiUrl); // Fetch all games for admin/judge
+        // Always fetch all games for admin/judge
+        const gamesResponse = await fetch(gamesApiUrl);
         if (!gamesResponse.ok) {
           const errorText = await gamesResponse.text();
           console.error("Failed to fetch games:", gamesResponse.status, gamesResponse.statusText, errorText);

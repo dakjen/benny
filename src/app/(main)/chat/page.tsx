@@ -65,8 +65,7 @@ export default function ChatPage() {
   // Socket.io connection and event listeners
   useEffect(() => {
     // Initialize socket connection
-    const vercelAppUrl = "https://benny-phi.vercel.app";
-    socket = io(vercelAppUrl); // Connect to your custom server on Vercel
+    socket = io(process.env.NEXT_PUBLIC_SOCKET_SERVER_URL || "http://localhost:3001"); // Connect to the separate socket server
 
     socket.on("connect", () => {
       console.log("Connected to socket.io server");
@@ -186,85 +185,6 @@ export default function ChatPage() {
     };
     fetchData();
   }, [session, localGameId, selectedAdminGameId]);
-
-  useEffect(() => {
-    const fetchMessages = async () => {
-      let currentTeamId = localTeamId;
-      let currentGameId = localGameId;
-
-      if (session?.user?.role === "admin" || session?.user?.role === "judge") {
-        currentGameId = selectedAdminGameId;
-        if (activeTab === "team" && selectedTeamForAdminChat) {
-          currentTeamId = selectedTeamForAdminChat.id;
-        } else if (activeTab === "game") {
-          currentTeamId = null; // Game chat doesn't have a specific team ID
-        }
-      }
-
-      if (currentGameId) {
-        let url = "";
-        if (activeTab === "game") {
-          url = `/api/direct-messages?type=game&gameId=${currentGameId}`;
-        } else if (activeTab === "team" && currentTeamId) {
-          url = `/api/direct-messages?type=team&teamId=${currentTeamId}`;
-        }
-
-        if (url) {
-          const response = await fetch(url);
-          const data = await response.json();
-          setChatMessages(data);
-        } else {
-          setChatMessages([]);
-        }
-      } else {
-        setChatMessages([]); // Clear messages if no game selected for admin/judge
-      }
-    };
-    fetchMessages();
-  }, [activeTab, localTeamId, localGameId, session, selectedAdminGameId, selectedTeamForAdminChat]);
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (message.trim() === "") return;
-
-    let senderName = localPlayerName;
-    let currentTeamId = localTeamId;
-    let currentGameId = localGameId;
-    let messageType = activeTab;
-
-    if (session?.user?.role === "admin" || session?.user?.role === "judge") {
-      senderName = session.user.name ?? ""; // Provide a default empty string if name is null or undefined
-      currentGameId = selectedAdminGameId;
-      if (activeTab === "team" && selectedTeamForAdminChat) {
-        currentTeamId = selectedTeamForAdminChat.id;
-      } else if (activeTab === "game") {
-        currentTeamId = null; // Game chat doesn't have a specific team ID
-      }
-    }
-
-    if (!senderName || !currentGameId || (messageType === "team" && !currentTeamId)) return;
-
-    const response = await fetch("/api/direct-messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: senderName,
-        message,
-        teamId: currentTeamId, // Will be null for game chat
-        gameId: currentGameId,
-        type: messageType,
-      }),
-    });
-
-    if (response.ok) {
-      // The message will be added to chatMessages via the socket.io listener
-      setMessage("");
-    } else {
-      console.error("Failed to send message");
-    }
-  };
 
   // Helper to get player name from ID
 const getPlayerNameById = (playerId: number) => {

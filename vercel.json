@@ -2,21 +2,10 @@
   "builds": [
     {
       "src": "package.json",
-      "use": "@vercel/next",
-      "config": {
-        "includeFiles": ["server.js"]
-      }
-    },
-    {
-      "src": "server.js",
-      "use": "@vercel/node"
+      "use": "@vercel/next"
     }
   ],
   "routes": [
-    {
-      "src": "/socket.io/(.*)",
-      "dest": "server.js"
-    },
     {
       "src": "/(.*)",
       "dest": "/$1"

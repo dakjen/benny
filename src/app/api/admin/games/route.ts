@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { name } = await request.json();
+    const { name, accessCode } = await request.json();
 
     if (!name) {
       return NextResponse.json(
@@ -42,6 +42,7 @@ export async function POST(request: Request) {
       .insert(games)
       .values({
         name,
+        accessCode: accessCode || null, // Store as null if not provided
       })
       .returning();
 

@@ -38,6 +38,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check if a player with the same name already exists in the same game
+    const existingPlayer = await db.query.players.findFirst({
+      where: and(eq(players.name, name), eq(players.gameId, gameId)),
+    });
+
+    if (existingPlayer) {
+      return NextResponse.json(
+        { message: "A player with this name already exists in this game." },
+        { status: 409 }
+      );
+    }
+
     const newPlayer = await db
       .insert(players)
       .values({

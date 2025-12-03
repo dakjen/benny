@@ -27,6 +27,9 @@ export default function HelpPage() {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [localPlayerId, setLocalPlayerId] = useState<number | null>(null);
 
+  // Placeholder for Admin User ID - This should ideally be fetched dynamically or from an env variable
+  const ADMIN_USER_ID = "admin_placeholder_id"; 
+
   useEffect(() => {
     // For regular players, get info from localStorage
     if (!session?.user) {
@@ -58,7 +61,7 @@ export default function HelpPage() {
           currentSenderId = session.user.id;
         }
       } else if (localPlayerId) {
-        currentRecipientId = session?.user?.id || "admin"; // Player messages admin
+        currentRecipientId = ADMIN_USER_ID; // Player messages admin
         currentSenderId = localPlayerId.toString();
       }
 
@@ -84,7 +87,7 @@ export default function HelpPage() {
         currentSenderId = session.user.id;
       }
     } else if (localPlayerId) {
-      currentRecipientId = session?.user?.id || "admin"; // Player messages admin
+      currentRecipientId = ADMIN_USER_ID; // Player messages admin
       currentSenderId = localPlayerId.toString();
     }
 
@@ -117,7 +120,7 @@ export default function HelpPage() {
     const player = players.find(p => p.id.toString() === senderId);
     if (player) return player.name;
     // Fallback for admin if player is not found (e.g., if admin is the sender)
-    if (senderId === "admin") return "Admin"; // Assuming "admin" is a placeholder for admin's ID
+    if (senderId === ADMIN_USER_ID) return "Admin"; // Use ADMIN_USER_ID here
     return "Unknown";
   };
 

@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 type Game = {
   id: number;
   name: string;
+  accessCode: string; // Added accessCode
 };
 
 type Team = {
@@ -17,6 +18,7 @@ export default function AdminGamesPage() {
   const [games, setGames] = useState<Game[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [newGameName, setNewGameName] = useState("");
+  const [newGameAccessCode, setNewGameAccessCode] = useState(""); // New state for access code
   const [newTeamName, setNewTeamName] = useState("");
   const [selectedGameId, setSelectedGameId] = useState<number | null>(() => {
     if (typeof window !== 'undefined') {
@@ -29,12 +31,20 @@ export default function AdminGamesPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingTeamId, setEditingTeamId] = useState<number | null>(null); // State for editing team
   const [editedTeamName, setEditedTeamName] = useState(""); // State for edited team name
+  const [editingGameId, setEditingGameId] = useState<number | null>(null); // State for editing game
+  const [editedGameName, setEditedGameName] = useState(""); // State for edited game name
+  const [editedGameAccessCode, setEditedGameAccessCode] = useState(""); // State for edited game access code
 
   const fetchGamesAndTeams = async () => {
     try {
       const gamesResponse = await fetch("/api/admin/games");
       const gamesData = await gamesResponse.json();
       setGames(gamesData);
+
+      // If there's only one game, select it by default
+      if (gamesData.length === 1) {
+        setSelectedGameId(gamesData[0].id);
+      }
 
       const teamsResponse = await fetch("/api/admin/teams");
       const teamsData = await teamsResponse.json();
@@ -67,7 +77,7 @@ export default function AdminGamesPage() {
       const response = await fetch("/api/admin/games", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newGameName }),
+        body: JSON.stringify({ name: newGameName, accessCode: newGameAccessCode }),
       });
 
       if (!response.ok) {
@@ -75,6 +85,7 @@ export default function AdminGamesPage() {
       }
 
       setNewGameName("");
+      setNewGameAccessCode(""); // Clear access code after adding game
       fetchGamesAndTeams();
     } catch (err: any) {
       setError(err.message);
@@ -135,6 +146,39 @@ export default function AdminGamesPage() {
     setEditedTeamName("");
   };
 
+  const handleEditGame = (game: Game) => {
+    setEditingGameId(game.id);
+    setEditedGameName(game.name);
+    setEditedGameAccessCode(game.accessCode || ""); // Handle nullable accessCode
+  };
+
+  const handleSaveGame = async (gameId: number) => {
+    try {
+      const response = await fetch(`/api/admin/games/${gameId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editedGameName, accessCode: editedGameAccessCode || null }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update game");
+      }
+
+      setEditingGameId(null);
+      setEditedGameName("");
+      setEditedGameAccessCode("");
+      fetchGamesAndTeams();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleCancelGameEdit = () => {
+    setEditingGameId(null);
+    setEditedGameName("");
+    setEditedGameAccessCode("");
+  };
+
   if (loading) {
     return <div className="p-4">Loading games and teams...</div>;
   }
@@ -159,6 +203,14 @@ export default function AdminGamesPage() {
             placeholder="Game Name"
             className="w-full bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
             required
+          />
+          <input
+            type="text"
+            value={newGameAccessCode}
+            onChange={(e) => setNewGameAccessCode(e.target.value)}
+            placeholder="4-Digit Access Code"
+            maxLength={4}
+            className="w-full bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <button
             type="submit"
@@ -209,8 +261,51 @@ export default function AdminGamesPage() {
         <h2 className="text-xl font-bold mb-4">Existing Games & Teams</h2>
         {games.map((game) => (
           <div key={game.id} className="mb-6 p-4 bg-card rounded-lg shadow-md">
-            <h3 className="text-lg font-bold mb-2">{game.name}</h3>
-            <ul className="list-disc pl-5">
+            {editingGameId === game.id ? (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={editedGameName}
+                  onChange={(e) => setEditedGameName(e.target.value)}
+                  className="w-full bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <input
+                  type="text"
+                  value={editedGameAccessCode}
+                  onChange={(e) => setEditedGameAccessCode(e.target.value)}
+                  placeholder="Access Code (optional)"
+                  maxLength={4}
+                  className="w-full bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => handleSaveGame(game.id)}
+                    className="flex-1 bg-green-500 text-white rounded-lg px-3 py-1 hover:bg-green-600"
+                  >
+                    Save Game
+                  </button>
+                  <button
+                    onClick={handleCancelGameEdit}
+                    className="flex-1 bg-gray-500 text-white rounded-lg px-3 py-1 hover:bg-gray-600"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-bold">
+                  {game.name} {game.accessCode && `(Code: ${game.accessCode})`}
+                </h3>
+                <button
+                  onClick={() => handleEditGame(game)}
+                  className="ml-4 bg-blue-500 text-white rounded-lg px-3 py-1 hover:bg-blue-600"
+                >
+                  Edit Game
+                </button>
+              </div>
+            )}
+            <ul className="list-disc pl-5 mt-2">
               {teams
                 .filter((team) => team.gameId === game.id)
                 .map((team) => (

@@ -49,6 +49,7 @@ export const directMessages = pgTable("direct_messages", {
 export const games = pgTable("games", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
+  accessCode: text("access_code").unique(), // Changed to nullable
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .$defaultFn(() => new Date()),

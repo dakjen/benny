@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Send } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { io } from "socket.io-client"; // Import socket.io-client
 
 type Message = {
   id: number;
@@ -31,6 +32,8 @@ type Game = {
   name: string;
 };
 
+let socket; // Declare socket outside to persist across re-renders
+
 export default function ChatPage() {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<"team" | "game">("game"); // Default to game chat for admin
@@ -58,6 +61,59 @@ export default function ChatPage() {
       setLocalGameId(Number(localStorage.getItem("gameId")));
     }
   }, [session]);
+
+  // Socket.io connection and event listeners
+  useEffect(() => {
+    // Initialize socket connection
+    socket = io("http://localhost:3000"); // Connect to your custom server
+
+    socket.on("connect", () => {
+      console.log("Connected to socket.io server");
+    });
+
+    socket.on("message", (newMessage: Message) => {
+      console.log("Received new message:", newMessage);
+      setChatMessages((prevMessages) => [...prevMessages, newMessage]);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Disconnected from socket.io server");
+    });
+
+    // Cleanup on component unmount
+    return () => {
+      socket.disconnect();
+    };
+  }, []); // Empty dependency array means this runs once on mount and cleanup on unmount
+
+  // Join/Leave rooms based on activeTab and game/team IDs
+  useEffect(() => {
+    if (!socket) return;
+
+    let currentTeamId = localTeamId;
+    let currentGameId = localGameId;
+
+    if (session?.user?.role === "admin" || session?.user?.role === "judge") {
+      currentGameId = selectedAdminGameId;
+      if (activeTab === "team" && selectedTeamForAdminChat) {
+        currentTeamId = selectedTeamForAdminChat.id;
+      } else if (activeTab === "game") {
+        currentTeamId = null;
+      }
+    }
+
+    // Leave previous rooms before joining new ones
+    socket.emit("leaveRoom", { gameId: localGameId, teamId: localTeamId });
+    socket.emit("leaveRoom", { gameId: selectedAdminGameId, teamId: selectedTeamForAdminChat?.id });
+
+
+    if (activeTab === "game" && currentGameId) {
+      socket.emit("joinRoom", { gameId: currentGameId });
+    } else if (activeTab === "team" && currentTeamId) {
+      socket.emit("joinRoom", { teamId: currentTeamId });
+    }
+  }, [activeTab, localTeamId, localGameId, session, selectedAdminGameId, selectedTeamForAdminChat]);
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -148,27 +204,22 @@ export default function ChatPage() {
     });
 
     if (response.ok) {
-      const newMessage = await response.json();
-      setChatMessages((prevMessages) => [...prevMessages, newMessage]);
+      // The message will be added to chatMessages via the socket.io listener
       setMessage("");
     } else {
       console.error("Failed to send message");
     }
   };
 
-  // Helper to get player name from ID and format based on chat type
-  const getSenderDisplayName = (senderId: number) => {
-    const player = allPlayers.find(p => p.id === senderId);
-    if (!player) return "Unknown";
-
-    if (activeTab === "team") {
-      return player.name; // Display username for team chat
-    } else if (activeTab === "game") {
-      const team = allTeams.find(t => t.id === player.teamId);
-      return team ? `${team.name}: ${player.name}` : player.name; // Display team name: username for game chat
+  // Helper to get player name from ID
+const getPlayerNameById = (playerId: number) => {
+    // If the message sender is the local player, use localPlayerName
+    if (playerId === localPlayerId && localPlayerName) {
+        return localPlayerName;
     }
-    return player.name;
-  };
+    const player = allPlayers.find(p => p.id === playerId);
+    return player ? player.name : "Unknown";
+};
 
   if (session?.user?.role === "admin" || session?.user?.role === "judge") {
     const filteredTeams = allTeams.filter(team => team.gameId === selectedAdminGameId);
@@ -269,7 +320,7 @@ export default function ChatPage() {
                                 : "bg-secondary rounded-bl-none"
                             }`}
                           >
-                            <p className="font-bold text-sm">{getSenderDisplayName(msg.sender)}</p>
+                            <p className="font-bold text-sm">{getPlayerNameById(msg.sender)}</p>
                             <p>{msg.message}</p>
                           </div>
                         </div>
@@ -338,6 +389,12 @@ export default function ChatPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
+        {activeTab === "team" && (
+          <p className="text-center text-gray-500 mb-4">This chat holds only your team members</p>
+        )}
+        {activeTab === "game" && (
+          <p className="text-center text-gray-500 mb-4">This chat is with all game players</p>
+        )}
         <div className="space-y-4">
           {chatMessages.map((msg) => (
             <div
@@ -354,7 +411,7 @@ export default function ChatPage() {
                     : "bg-secondary rounded-bl-none"
                 }`}
               >
-                <p className="font-bold text-sm">{getSenderDisplayName(msg.sender)}</p>
+                <p className="font-bold text-sm">{getPlayerNameById(msg.sender)}</p>
                 <p>{msg.message}</p>
               </div>
             </div>

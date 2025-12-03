@@ -15,28 +15,67 @@ export default function HomePage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null); // Changed to selectedTeamId
   const [playerName, setPlayerName] = useState("");
+  const [accessCode, setAccessCode] = useState(""); // New state for access code
+  const [codeValid, setCodeValid] = useState(false); // New state to track code validity
+  const [codeError, setCodeError] = useState(""); // New state for code error message
+  const [validatedGameId, setValidatedGameId] = useState<number | null>(null); // New state for validated game ID
   const router = useRouter();
 
   useEffect(() => {
-    const fetchTeams = async () => {
-      const response = await fetch("/api/teams");
-      const data = await response.json();
-      console.log("teams data", data);
-      setTeams(data);
-    };
-    fetchTeams();
-  }, []);
+    // Only fetch teams if a game ID is validated
+    if (validatedGameId) {
+      const fetchTeams = async () => {
+        const response = await fetch(`/api/teams?gameId=${validatedGameId}`);
+        const data = await response.json();
+        console.log("teams data", data);
+        setTeams(data);
+      };
+      fetchTeams();
+    } else {
+      setTeams([]); // Clear teams if no game ID is validated
+    }
+  }, [validatedGameId]); // Dependency on validatedGameId
 
-  const handleEnterGame = async (e: React.FormEvent) => {
+  const handleValidateCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedTeamId === null || playerName.trim() === "") {
-      // Basic validation
+    if (accessCode.length !== 4) {
+      setCodeError("Code must be 4 digits.");
       return;
     }
 
-    const selectedTeam = teams.find(team => team.id === selectedTeamId);
-    if (!selectedTeam) {
-      // Handle error: selected team not found
+    try {
+      const response = await fetch("/api/validate-code", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ code: accessCode }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setValidatedGameId(data.gameId); // Store the validated game ID
+        setCodeValid(true);
+        setCodeError("");
+      } else {
+        setCodeValid(false);
+        setValidatedGameId(null); // Clear game ID if code is invalid
+        setCodeError("Invalid code.");
+      }
+    } catch (error) {
+      console.error("Error validating code:", error);
+      setCodeError("Error validating code.");
+    }
+  };
+
+  const handleEnterGame = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!codeValid || !validatedGameId) {
+      setCodeError("Please enter a valid code first.");
+      return;
+    }
+    if (selectedTeamId === null || playerName.trim() === "") {
+      // Basic validation
       return;
     }
 
@@ -48,8 +87,8 @@ export default function HomePage() {
       },
       body: JSON.stringify({
         name: playerName,
-        teamId: selectedTeam.id,
-        gameId: selectedTeam.gameId,
+        teamId: selectedTeamId,
+        gameId: validatedGameId, // Use the validated game ID
       }),
     });
 
@@ -80,35 +119,64 @@ export default function HomePage() {
       <p className="text-lg font-manrope italic">the frontal lobe develops.</p>
       <p className="text-lg font-manrope italic mb-8">The scavenger hunt begins.</p>
 
-      <form onSubmit={handleEnterGame} className="w-full max-w-sm space-y-4">
-        <select
-          value={selectedTeamId || ""}
-          onChange={(e) => setSelectedTeamId(Number(e.target.value))}
-          className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
-          required
-        >
-          <option value="" disabled>Select a team</option>
-          {teams.map((team) => (
-            <option key={team.id} value={team.id}>
-                {team.name}
-            </option>
-          ))}
-        </select>
+      {/* Access Code Input */}
+      <form onSubmit={handleValidateCode} className="w-full max-w-sm space-y-4 mb-4">
         <input
           type="text"
-          value={playerName}
-          onChange={(e) => setPlayerName(e.target.value)}
-          placeholder="Your Name"
+          value={accessCode}
+          onChange={(e) => {
+            setAccessCode(e.target.value);
+            setCodeError(""); // Clear error on change
+          }}
+          placeholder="4-Digit Code"
+          maxLength={4}
           className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
           required
+          disabled={codeValid} // Disable if code is already valid
         />
-        <button
-          type="submit"
-          className="w-full bg-primary text-primary-foreground rounded-lg py-3 font-bold hover:bg-primary/90 transition-colors"
-        >
-          Enter Game
-        </button>
+        {!codeValid && (
+          <button
+            type="submit"
+            className="w-full bg-secondary text-secondary-foreground rounded-lg py-3 font-bold hover:bg-secondary/90 transition-colors"
+          >
+            Validate Code
+          </button>
+        )}
+        {codeError && <p className="text-red-500 text-sm mt-2">{codeError}</p>}
       </form>
+
+      {/* Player Input (only visible if code is valid) */}
+      {codeValid && (
+        <form onSubmit={handleEnterGame} className="w-full max-w-sm space-y-4">
+          <select
+            value={selectedTeamId || ""}
+            onChange={(e) => setSelectedTeamId(Number(e.target.value))}
+            className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+            required
+          >
+            <option value="" disabled>Select a team</option>
+            {teams.map((team) => (
+              <option key={team.id} value={team.id}>
+                  {team.name}
+              </option>
+            ))}
+          </select>
+          <input
+            type="text"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            placeholder="Your Name"
+            className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+            required
+          />
+          <button
+            type="submit"
+            className="w-full bg-primary text-primary-foreground rounded-lg py-3 font-bold hover:bg-primary/90 transition-colors"
+          >
+            Enter Game
+          </button>
+        </form>
+      )}
 
       <div className="mt-8">
         <Link href="/login">

@@ -77,6 +77,20 @@ export async function POST(request: Request) {
       })
       .returning();
 
+    // Emit the new message via the socket-emitter API
+    await fetch("http://localhost:3000/api/socket-emitter", { // Use full URL for external API call
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: newMessage[0], // Pass the full message object
+        gameId: newMessage[0].gameId,
+        teamId: newMessage[0].teamId,
+        type: newMessage[0].type,
+      }),
+    });
+
     return NextResponse.json(newMessage[0], { status: 201 });
   } catch (error) {
     console.error(error);

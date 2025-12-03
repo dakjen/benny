@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       .returning();
 
     // Emit the new message via the socket-emitter API
-    await fetch("http://localhost:3000/api/socket-emitter", { // Use full URL for external API call
+    await fetch(process.env.NEXTAUTH_URL + "/api/socket-emitter", { // Use full URL for external API call
       method: "POST",
       headers: {
         "Content-Type": "application/json",

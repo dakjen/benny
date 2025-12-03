@@ -173,7 +173,7 @@ export default function HomePage() {
               }}
               placeholder="4-Digit Code"
               maxLength={4}
-              className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full bg-input text-gray-900 border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
               required
               disabled={codeValid} // Disable if code is already valid
             />
@@ -194,7 +194,7 @@ export default function HomePage() {
               <select
                 value={selectedTeamId || ""}
                 onChange={(e) => setSelectedTeamId(Number(e.target.value))}
-                className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full bg-input text-gray-900 border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
                 required
               >
                 <option value="" disabled>Select a team</option>
@@ -209,7 +209,7 @@ export default function HomePage() {
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
                 placeholder="Your Name"
-                className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full bg-input text-gray-900 border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
                 required
               />
               <button

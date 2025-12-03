@@ -580,7 +580,7 @@ export default function ChatPage() {
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       placeholder="Type a message..."
-                      className="flex-1 bg-input text-card-foreground border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="flex-1 bg-input text-gray-900 border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                     <button
                       type="submit"

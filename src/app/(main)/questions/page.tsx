@@ -51,7 +51,9 @@ export default function QuestionsPage() {
   useEffect(() => {
     const fetchGamesAndSetSelected = async () => {
       try {
-        const response = await fetch("/api/admin/games"); // Assuming this API is accessible
+        const isAdmin = session?.user?.role === "admin";
+        const apiUrl = isAdmin ? "/api/admin/games" : "/api/public/games";
+        const response = await fetch(apiUrl); // Assuming this API is accessible
         if (!response.ok) {
           const errorText = await response.text();
           console.error("Failed to fetch games:", response.status, response.statusText, errorText);
@@ -85,8 +87,12 @@ export default function QuestionsPage() {
     if (selectedGameId) {
       const fetchCategoriesAndQuestions = async () => {
         try {
+          const isAdmin = session?.user?.role === "admin";
+          const categoriesApiUrl = isAdmin ? "/api/admin/categories" : "/api/public/categories";
+          const questionsApiUrl = isAdmin ? `/api/admin/questions?gameId=${selectedGameId}` : `/api/public/questions?gameId=${selectedGameId}`;
+
           // Fetch categories
-          const categoriesResponse = await fetch("/api/admin/categories"); // Assuming this API is accessible
+          const categoriesResponse = await fetch(categoriesApiUrl); // Assuming this API is accessible
           if (!categoriesResponse.ok) {
             const errorText = await categoriesResponse.text();
             console.error("Failed to fetch categories:", categoriesResponse.status, categoriesResponse.statusText, errorText);
@@ -102,7 +108,7 @@ export default function QuestionsPage() {
           setCategories(categoriesData.filter((cat: Category) => cat.gameId === selectedGameId));
 
           // Fetch questions
-          const questionsResponse = await fetch(`/api/admin/questions?gameId=${selectedGameId}`); // Assuming this API is accessible
+          const questionsResponse = await fetch(`/api/public/questions?gameId=${selectedGameId}`); // Assuming this API is accessible
           if (!questionsResponse.ok) {
             const errorText = await questionsResponse.text();
             console.error("Failed to fetch questions:", questionsResponse.status, questionsResponse.statusText, errorText);

@@ -119,7 +119,13 @@ export default function ChatPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const playersResponse = await fetch("/api/players");
+        const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
+
+        const playersApiUrl = isAdminOrJudge ? "/api/admin/players" : "/api/public/players";
+        const teamsApiUrl = isAdminOrJudge ? "/api/admin/teams" : "/api/public/teams";
+        const gamesApiUrl = isAdminOrJudge ? "/api/admin/games" : "/api/public/games";
+
+        const playersResponse = await fetch(playersApiUrl);
         if (!playersResponse.ok) {
           const errorText = await playersResponse.text();
           console.error("Failed to fetch players:", playersResponse.status, playersResponse.statusText, errorText);

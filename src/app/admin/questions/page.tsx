@@ -113,7 +113,7 @@ export default function AdminQuestionsPage() {
     e.preventDefault();
     if (!editingQuestion || selectedGameId === null || points === 0) return;
 
-    await fetch(`/api/questions/${editingQuestion.id}`, {
+    await fetch(`/api/admin/questions/${editingQuestion.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -135,7 +135,7 @@ export default function AdminQuestionsPage() {
 
   const handleDeleteQuestion = async (id: number) => {
     if (selectedGameId === null) return;
-    await fetch(`/api/questions/${id}`, {
+    await fetch(`/api/admin/questions/${id}`, {
       method: "DELETE",
     });
     fetchQuestions(selectedGameId);

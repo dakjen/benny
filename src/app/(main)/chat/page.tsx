@@ -36,6 +36,8 @@ let socket: Socket; // Declare socket outside to persist across re-renders
 
 export default function ChatPage() {
   const { data: session } = useSession();
+  console.log("ChatPage Session:", session);
+  console.log("ChatPage User Role:", session?.user?.role);
   const [activeTab, setActiveTab] = useState<"team" | "game">("game"); // Default to game chat for admin
   const [message, setMessage] = useState("");
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
@@ -43,6 +45,10 @@ export default function ChatPage() {
   const [localPlayerName, setLocalPlayerName] = useState<string | null>(null);
   const [localTeamId, setLocalTeamId] = useState<number | null>(null);
   const [localGameId, setLocalGameId] = useState<number | null>(null);
+  console.log("ChatPage Local Player ID:", localPlayerId);
+  console.log("ChatPage Local Player Name:", localPlayerName);
+  console.log("ChatPage Local Team ID:", localTeamId);
+  console.log("ChatPage Local Game ID:", localGameId);
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [allGames, setAllGames] = useState<Game[]>([]); // New state for all games

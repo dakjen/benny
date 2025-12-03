@@ -26,12 +26,15 @@ type Question = {
 
 export default function QuestionsPage() {
   const { data: session } = useSession();
+  console.log("QuestionsPage Session:", session);
+  console.log("QuestionsPage User Role:", session?.user?.role);
   const [games, setGames] = useState<Game[]>([]);
   const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<number[]>([]); // State to manage expanded categories
   const [localGameId, setLocalGameId] = useState<number | null>(null); // New state for player's game ID
+  console.log("QuestionsPage Local Game ID:", localGameId);
 
   // Admin-specific states (kept for now, will be moved or removed later if needed)
   const [newQuestionText, setNewQuestionText] = useState("");

@@ -22,6 +22,21 @@ export default async function AdminDashboardPage() {
     }
   }
 
+  let totalPointsGranted = 0;
+  if (isAdmin || isJudge) {
+    try {
+      const response = await fetch(`${process.env.NEXTAUTH_URL}/api/admin/points/total`);
+      if (response.ok) {
+        const data = await response.json();
+        totalPointsGranted = data.totalPoints;
+      } else {
+        console.error("Failed to fetch total points granted:", response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error("Error fetching total points granted:", error);
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col items-center p-24">
       <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
@@ -53,6 +68,9 @@ export default async function AdminDashboardPage() {
         </div>
         <div className="p-6 rounded-lg shadow-md" style={{ backgroundColor: "#7fab61" }}>
           <h2 className="text-2xl font-bold mb-4">Points</h2>
+          {(isAdmin || isJudge) && (
+            <p className="text-lg">Total granted: {totalPointsGranted}</p>
+          )}
           {/* Add content for Points here */}
         </div>
       </div>

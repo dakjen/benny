@@ -118,17 +118,36 @@ export default function ChatPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const playersResponse = await fetch("/api/players");
-      const playersData = await playersResponse.json();
-      setAllPlayers(playersData);
+      try {
+        const playersResponse = await fetch("/api/players");
+        if (!playersResponse.ok) {
+          const errorText = await playersResponse.text();
+          console.error("Failed to fetch players:", playersResponse.status, playersResponse.statusText, errorText);
+          throw new Error(`Failed to fetch players: ${playersResponse.statusText}`);
+        }
+        const playersData = await playersResponse.json();
+        setAllPlayers(playersData);
 
-      const teamsResponse = await fetch("/api/teams");
-      const teamsData = await teamsResponse.json();
-      setAllTeams(teamsData);
+        const teamsResponse = await fetch("/api/teams");
+        if (!teamsResponse.ok) {
+          const errorText = await teamsResponse.text();
+          console.error("Failed to fetch teams:", teamsResponse.status, teamsResponse.statusText, errorText);
+          throw new Error(`Failed to fetch teams: ${teamsResponse.statusText}`);
+        }
+        const teamsData = await teamsResponse.json();
+        setAllTeams(teamsData);
 
-      const gamesResponse = await fetch("/api/admin/games"); // Fetch all games for admin/judge
-      const gamesData = await gamesResponse.json();
-      setAllGames(gamesData);
+        const gamesResponse = await fetch("/api/admin/games"); // Fetch all games for admin/judge
+        if (!gamesResponse.ok) {
+          const errorText = await gamesResponse.text();
+          console.error("Failed to fetch games:", gamesResponse.status, gamesResponse.statusText, errorText);
+          throw new Error(`Failed to fetch games: ${gamesResponse.statusText}`);
+        }
+        const gamesData = await gamesResponse.json();
+        setAllGames(gamesData);
+      } catch (error) {
+        console.error("Error fetching chat data:", error);
+      }
     };
     fetchData();
   }, []);

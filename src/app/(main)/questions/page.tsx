@@ -50,16 +50,25 @@ export default function QuestionsPage() {
   // Fetch games for all users and set selectedGameId
   useEffect(() => {
     const fetchGamesAndSetSelected = async () => {
-      const response = await fetch("/api/admin/games"); // Assuming this API is accessible
-      const data = await response.json();
-      setGames(data);
-
-      if (session?.user?.role === "admin") {
-        if (data.length === 1) {
-          setSelectedGameId(data[0].id);
+      try {
+        const response = await fetch("/api/admin/games"); // Assuming this API is accessible
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Failed to fetch games:", response.status, response.statusText, errorText);
+          throw new Error(`Failed to fetch games: ${response.statusText}`);
         }
-      } else if (localGameId) { // For players, use localGameId
-        setSelectedGameId(localGameId);
+        const data = await response.json();
+        setGames(data);
+
+        if (session?.user?.role === "admin") {
+          if (data.length === 1) {
+            setSelectedGameId(data[0].id);
+          }
+        } else if (localGameId) { // For players, use localGameId
+          setSelectedGameId(localGameId);
+        }
+      } catch (error) {
+        console.error("Error fetching games data:", error);
       }
     };
     fetchGamesAndSetSelected();
@@ -69,15 +78,29 @@ export default function QuestionsPage() {
   useEffect(() => {
     if (selectedGameId) {
       const fetchCategoriesAndQuestions = async () => {
-        // Fetch categories
-        const categoriesResponse = await fetch("/api/admin/categories"); // Assuming this API is accessible
-        const categoriesData = await categoriesResponse.json();
-        setCategories(categoriesData.filter((cat: Category) => cat.gameId === selectedGameId));
+        try {
+          // Fetch categories
+          const categoriesResponse = await fetch("/api/admin/categories"); // Assuming this API is accessible
+          if (!categoriesResponse.ok) {
+            const errorText = await categoriesResponse.text();
+            console.error("Failed to fetch categories:", categoriesResponse.status, categoriesResponse.statusText, errorText);
+            throw new Error(`Failed to fetch categories: ${categoriesResponse.statusText}`);
+          }
+          const categoriesData = await categoriesResponse.json();
+          setCategories(categoriesData.filter((cat: Category) => cat.gameId === selectedGameId));
 
-        // Fetch questions
-        const questionsResponse = await fetch(`/api/admin/questions?gameId=${selectedGameId}`); // Assuming this API is accessible
-        const questionsData = await questionsResponse.json();
-        setQuestions(questionsData);
+          // Fetch questions
+          const questionsResponse = await fetch(`/api/admin/questions?gameId=${selectedGameId}`); // Assuming this API is accessible
+          if (!questionsResponse.ok) {
+            const errorText = await questionsResponse.text();
+            console.error("Failed to fetch questions:", questionsResponse.status, questionsResponse.statusText, errorText);
+            throw new Error(`Failed to fetch questions: ${questionsResponse.statusText}`);
+          }
+          const questionsData = await questionsResponse.json();
+          setQuestions(questionsData);
+        } catch (error) {
+          console.error("Error fetching categories or questions:", error);
+        }
       };
       fetchCategoriesAndQuestions();
     }

@@ -3,6 +3,8 @@ import { players, categories, questions } from "@/db/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
+export const dynamic = 'force-dynamic'; // Opt out of static rendering
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);

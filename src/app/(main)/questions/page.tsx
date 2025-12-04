@@ -58,22 +58,26 @@ export default function QuestionsPage() {
     if (!session?.user) { // Only for players not logged in via session
       const storedGameId = localStorage.getItem("gameId");
       const storedPlayerId = localStorage.getItem("playerId");
-      if (storedGameId) {
+      // Only update state if the value has actually changed
+      if (storedGameId && Number(storedGameId) !== localGameId) {
         setLocalGameId(Number(storedGameId));
       }
-      if (storedPlayerId) {
+      if (storedPlayerId && Number(storedPlayerId) !== localPlayerId) {
         setLocalPlayerId(Number(storedPlayerId));
       }
     }
-  }, [session]);
+  }, [session, localGameId, localPlayerId]);
 
-  // Fetch games for all users and set selectedGameId
   useEffect(() => {
     const fetchGamesAndSetSelected = async () => {
+      console.log("fetchGamesAndSetSelected useEffect running...");
+      console.log("  Current session:", session);
+      console.log("  Current localGameId:", localGameId);
+      console.log("  Current selectedGameId:", selectedGameId);
       try {
         const isAdmin = session?.user?.role === "admin";
         const apiUrl = isAdmin ? "/api/admin/games" : "/api/public/games";
-        const response = await fetch(apiUrl); // Assuming this API is accessible
+        const response = await fetch(apiUrl);
         if (!response.ok) {
           const errorText = await response.text();
           console.error("Failed to fetch games:", response.status, response.statusText, errorText);
@@ -88,19 +92,32 @@ export default function QuestionsPage() {
         const data = await response.json();
         setGames(data);
 
+        let newSelectedGameId: number | null = null;
         if (session?.user?.role === "admin") {
           if (data.length === 1) {
-            setSelectedGameId(data[0].id);
+            newSelectedGameId = data[0].id;
           }
         } else if (localGameId) { // For players, use localGameId
-          setSelectedGameId(localGameId);
+          newSelectedGameId = localGameId;
+        }
+        console.log("  Calculated newSelectedGameId:", newSelectedGameId);
+
+        // Only update selectedGameId if it has actually changed
+        if (newSelectedGameId !== null && newSelectedGameId !== selectedGameId) {
+          console.log("  Setting selectedGameId to:", newSelectedGameId);
+          setSelectedGameId(newSelectedGameId);
+        } else if (newSelectedGameId === null && selectedGameId !== null) {
+          console.log("  Clearing selectedGameId (setting to null).");
+          setSelectedGameId(null);
+        } else {
+          console.log("  selectedGameId remains unchanged.");
         }
       } catch (error) {
         console.error("Error fetching games data:", error);
       }
     };
     fetchGamesAndSetSelected();
-  }, [session, localGameId]); // Add localGameId to dependencies
+  }, [session, localGameId, selectedGameId]);
 
   // Fetch categories and questions when selectedGameId changes
   useEffect(() => {

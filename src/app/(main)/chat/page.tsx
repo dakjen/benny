@@ -75,26 +75,38 @@ export default function ChatPage() {
 
 
   useEffect(() => {
-    // For regular players, get info from localStorage
-    if (!session?.user) {
-      const storedPlayerId = localStorage.getItem("playerId");
-      const storedPlayerName = localStorage.getItem("playerName");
-      const storedTeamId = localStorage.getItem("teamId");
-      const storedGameId = localStorage.getItem("gameId");
+    // console.log("Chat Page: localStorage useEffect running...");
+    // console.log("  Current session in localStorage useEffect:", session);
+    // // For regular players, get info from localStorage
+    // if (!session?.user) {
+    //   const storedPlayerId = localStorage.getItem("playerId");
+    //   const storedPlayerName = localStorage.getItem("playerName");
+    //   const storedTeamId = localStorage.getItem("teamId");
+    //   const storedGameId = localStorage.getItem("gameId");
 
-      setLocalPlayerId(storedPlayerId ? Number(storedPlayerId) : null);
-      setLocalPlayerName(storedPlayerName);
-      setLocalTeamId(storedTeamId ? Number(storedTeamId) : null);
-      setLocalGameId(storedGameId ? Number(storedGameId) : null);
+    //   console.log("  Stored localStorage values:", { storedPlayerId, storedPlayerName, storedTeamId, storedGameId });
 
-      console.log("Player LocalStorage values:", {
-        playerId: storedPlayerId,
-        playerName: storedPlayerName,
-        teamId: storedTeamId,
-        gameId: storedGameId,
-      });
-    }
-  }, [session]);
+    //   // Only update state if the value has actually changed
+    //   if (storedPlayerId && Number(storedPlayerId) !== localPlayerId) {
+    //     setLocalPlayerId(Number(storedPlayerId));
+    //     console.log("  setLocalPlayerId called:", storedPlayerId);
+    //   }
+    //   if (storedPlayerName && storedPlayerName !== localPlayerName) {
+    //     setLocalPlayerName(storedPlayerName);
+    //     console.log("  setLocalPlayerName called:", storedPlayerName);
+    //   }
+    //   if (storedTeamId && Number(storedTeamId) !== localTeamId) {
+    //     setLocalTeamId(Number(storedTeamId));
+    //     console.log("  setLocalTeamId called:", storedTeamId);
+    //   }
+    //   if (storedGameId && Number(storedGameId) !== localGameId) {
+    //     setLocalGameId(Number(storedGameId));
+    //     console.log("  setLocalGameId called:", storedGameId);
+    //   }
+    // } else {
+    //   console.log("  Session user exists, not reading from localStorage for player info.");
+    // }
+  }, [session, localPlayerId, localPlayerName, localTeamId, localGameId]);
 
   // Supabase Realtime subscription
   useEffect(() => {
@@ -309,80 +321,433 @@ export default function ChatPage() {
 
     
 
-      useEffect(() => {
+            useEffect(() => {
 
-        const fetchData = async () => {
+    
 
-          try {
-        const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
-        const currentActiveGameId = isAdminOrJudge ? selectedAdminGameId : localGameId;
+    
 
-        const playersApiUrl = isAdminOrJudge ? `/api/admin/players?gameId=${currentActiveGameId}` : `/api/public/players?gameId=${currentActiveGameId}`;
-        const teamsApiUrl = isAdminOrJudge ? `/api/admin/teams?gameId=${currentActiveGameId}` : `/api/public/teams?gameId=${currentActiveGameId}`;
-        const gamesApiUrl = isAdminOrJudge ? "/api/admin/games" : "/api/public/games"; // Games API for public doesn't need gameId for all games
+              // const fetchData = async () => {
 
-        // Only fetch players and teams if a game is selected or if it's a player
-        if (currentActiveGameId) {
-          const playersResponse = await fetch(playersApiUrl);
-          if (!playersResponse.ok) {
-            const errorText = await playersResponse.text();
-            console.error("Failed to fetch players:", playersResponse.status, playersResponse.statusText, errorText);
-            throw new Error(`Failed to fetch players: ${playersResponse.statusText}`);
-          }
-          const playersContentType = playersResponse.headers.get('content-type');
-          if (!playersContentType || !playersContentType.includes('application/json')) {
-            const errorText = await playersResponse.text();
-            console.error("Players API did not return JSON:", errorText);
-            throw new Error("Players API did not return JSON.");
-          }
-          const playersData = await playersResponse.json();
-          console.log("Fetched players data:", playersData);
-          setAllPlayers(playersData);
+    
 
-          const teamsResponse = await fetch(teamsApiUrl);
-          if (!teamsResponse.ok) {
-            const errorText = await teamsResponse.text();
-            console.error("Failed to fetch teams:", teamsResponse.status, teamsResponse.statusText, errorText);
-            throw new Error(`Failed to fetch teams: ${teamsResponse.statusText}`);
-          }
-          const teamsContentType = teamsResponse.headers.get('content-type');
-          if (!teamsContentType || !teamsContentType.includes('application/json')) {
-            const errorText = await teamsResponse.text();
-            console.error("Teams API did not return JSON:", errorText);
-            throw new Error("Teams API did not return JSON.");
-          }
-          const teamsData = await teamsResponse.json();
-          console.log("Fetched teams data:", teamsData);
-          setAllTeams(teamsData);
-        } else {
-          // Clear players and teams if no game is selected for admin
-          setAllPlayers([]);
-          setAllTeams([]);
-        }
+    
 
-        // Always fetch all games for admin/judge
-        const gamesResponse = await fetch(gamesApiUrl);
-        if (!gamesResponse.ok) {
-          const errorText = await gamesResponse.text();
-          console.error("Failed to fetch games:", gamesResponse.status, gamesResponse.statusText, errorText);
-          throw new Error(`Failed to fetch games: ${gamesResponse.statusText}`);
-        }
-        const gamesContentType = gamesResponse.headers.get('content-type');
-        if (!gamesContentType || !gamesContentType.includes('application/json')) {
-          const errorText = await gamesResponse.text();
-          console.error("Games API did not return JSON:", errorText);
-          throw new Error("Games API did not return JSON.");
-        }
-        const gamesData = await gamesResponse.json();
-        console.log("Fetched games data:", gamesData);
-        setAllGames(gamesData);
-        console.log("allGames after fetch:", gamesData);
-      } catch (error) {
-        console.error("Error fetching chat data:", error);
-      }
-    };
-    fetchData();
-  }, [session, localGameId, selectedAdminGameId]);
+              //   try {
+
+    
+
+    
+
+              // const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
+
+    
+
+    
+
+              // const currentActiveGameId = isAdminOrJudge ? selectedAdminGameId : localGameId;
+
+    
+
+    
+
+      
+
+    
+
+    
+
+              // const playersApiUrl = isAdminOrJudge ? `/api/admin/players?gameId=${currentActiveGameId}` : `/api/public/players?gameId=${currentActiveGameId}`;
+
+    
+
+    
+
+              // const teamsApiUrl = isAdminOrJudge ? `/api/admin/teams?gameId=${currentActiveGameId}` : `/api/public/teams?gameId=${currentActiveGameId}`;
+
+    
+
+    
+
+              // const gamesApiUrl = isAdminOrJudge ? "/api/admin/games" : "/api/public/games"; // Games API for public doesn't need gameId for all games
+
+    
+
+    
+
+      
+
+    
+
+    
+
+              // // Only fetch players and teams if a game is selected or if it's a player
+
+    
+
+    
+
+              // if (currentActiveGameId) {
+
+    
+
+    
+
+              //   const playersResponse = await fetch(playersApiUrl);
+
+    
+
+    
+
+              //   if (!playersResponse.ok) {
+
+    
+
+    
+
+              //     const errorText = await playersResponse.text();
+
+    
+
+    
+
+              //     console.error("Failed to fetch players:", playersResponse.status, playersResponse.statusText, errorText);
+
+    
+
+    
+
+              //     throw new Error(`Failed to fetch players: ${playersResponse.statusText}`);
+
+    
+
+    
+
+              //   }
+
+    
+
+    
+
+              //   const playersContentType = playersResponse.headers.get('content-type');
+
+    
+
+    
+
+              //   if (!playersContentType || !playersContentType.includes('application/json')) {
+
+    
+
+    
+
+              //     const errorText = await playersResponse.text();
+
+    
+
+    
+
+              //     console.error("Players API did not return JSON:", errorText);
+
+    
+
+    
+
+              //     throw new Error("Players API did not return JSON.");
+
+    
+
+    
+
+              //   }
+
+    
+
+    
+
+              //   const playersData = await playersResponse.json();
+
+    
+
+    
+
+              //   console.log("Fetched players data:", playersData);
+
+    
+
+    
+
+              //   setAllPlayers(playersData);
+
+    
+
+    
+
+      
+
+    
+
+    
+
+              //   const teamsResponse = await fetch(teamsApiUrl);
+
+    
+
+    
+
+              //   if (!teamsResponse.ok) {
+
+    
+
+    
+
+              //     const errorText = await teamsResponse.text();
+
+    
+
+    
+
+              //     console.error("Failed to fetch teams:", teamsResponse.status, teamsResponse.statusText, errorText);
+
+    
+
+    
+
+              //     throw new Error(`Failed to fetch teams: ${teamsResponse.statusText}`);
+
+    
+
+    
+
+              //   }
+
+    
+
+    
+
+              //   const teamsContentType = teamsResponse.headers.get('content-type');
+
+    
+
+    
+
+              //   if (!teamsContentType || !teamsContentType.includes('application/json')) {
+
+    
+
+    
+
+              //     const errorText = await teamsResponse.text();
+
+    
+
+    
+
+              //     console.error("Teams API did not return JSON:", errorText);
+
+    
+
+    
+
+              //     throw new Error("Teams API did not return JSON.");
+
+    
+
+    
+
+              //   }
+
+    
+
+    
+
+              //   const teamsData = await teamsResponse.json();
+
+    
+
+    
+
+              //   console.log("Fetched teams data:", teamsData);
+
+    
+
+    
+
+              //   setAllTeams(teamsData);
+
+    
+
+    
+
+              // } else {
+
+    
+
+    
+
+              //   // Clear players and teams if no game is selected for admin
+
+    
+
+    
+
+              //   setAllPlayers([]);
+
+    
+
+    
+
+              //   setAllTeams([]);
+
+    
+
+    
+
+              // }
+
+    
+
+    
+
+      
+
+    
+
+    
+
+              // // Always fetch all games for admin/judge
+
+    
+
+    
+
+              // const gamesResponse = await fetch(gamesApiUrl);
+
+    
+
+    
+
+              // if (!gamesResponse.ok) {
+
+    
+
+    
+
+              //   const errorText = await gamesResponse.text();
+
+    
+
+    
+
+              //   console.error("Failed to fetch games:", gamesResponse.status, gamesResponse.statusText, errorText);
+
+    
+
+    
+
+              //   throw new Error(`Failed to fetch games: ${gamesResponse.statusText}`);
+
+    
+
+    
+
+              // }
+
+    
+
+    
+
+              // const gamesContentType = gamesResponse.headers.get('content-type');
+
+    
+
+    
+
+              // if (!gamesContentType || !gamesContentType.includes('application/json')) {
+
+    
+
+    
+
+              //   const errorText = await gamesResponse.text();
+
+    
+
+    
+
+              //   console.error("Games API did not return JSON:", errorText);
+
+    
+
+    
+
+              //   throw new Error("Games API did not return JSON.");
+
+    
+
+    
+
+              // }
+
+    
+
+    
+
+              // const gamesData = await gamesResponse.json();
+
+    
+
+    
+
+              // console.log("Fetched games data:", gamesData);
+
+    
+
+    
+
+              // setAllGames(gamesData);
+
+    
+
+    
+
+              // console.log("allGames after fetch:", gamesData);
+
+    
+
+    
+
+              //   } catch (error) {
+
+    
+
+    
+
+              // console.error("Error fetching chat data:", error);
+
+    
+
+    
+
+              //   }
+
+    
+
+    
+
+              // };
+
+    
+
+    
+
+              // fetchData();
+
+    
+
+    
+
+        }, [session, localGameId, selectedAdminGameId]);
 
   console.log("allGames in render:", allGames);
 

@@ -3,6 +3,8 @@ import { categories } from "@/db/schema";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 
+export const dynamic = 'force-dynamic'; // Opt out of static rendering
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);

@@ -270,43 +270,95 @@ export default function ChatPage() {
 
     
 
-                    let iconToAssign;
+                                        let iconToAssign;
 
     
 
-                    if (availableIcons.length > 0) {
+          
 
     
 
-                      // Assign the first available unique icon
+                                        if (availableIcons.length > 0) {
 
     
 
-                      iconToAssign = availableIcons[0];
+          
 
     
 
-                    } else {
+                                          // Assign a random available unique icon
 
     
 
-                      // Fallback: all regular icons are used, cycle through them based on hash
+          
 
     
 
-                      const hash = senderId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                                          const randomIndex = Math.floor(Math.random() * availableIcons.length);
 
     
 
-                      const index = hash % regularIcons.length;
+          
 
     
 
-                      newAssignedIcons[senderId] = regularIcons[index];
+                                          iconToAssign = availableIcons[randomIndex];
 
     
 
-                    }
+          
+
+    
+
+                                        } else {
+
+    
+
+          
+
+    
+
+                                          // Fallback: all regular icons are used, cycle through them based on hash
+
+    
+
+          
+
+    
+
+                                          const hash = senderId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
+    
+
+          
+
+    
+
+                                          const index = hash % regularIcons.length;
+
+    
+
+          
+
+    
+
+                                          iconToAssign = regularIcons[index];
+
+    
+
+          
+
+    
+
+                                        }
+
+    
+
+          
+
+    
+
+                                        newAssignedIcons[senderId] = iconToAssign;
 
     
 

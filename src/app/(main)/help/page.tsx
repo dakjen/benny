@@ -2,7 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Send } from "lucide-react";
+import dynamic from "next/dynamic"; // Import dynamic
+import {
+  User, Send, Bath, Bitcoin, Beef, BatteryWarning, Binoculars, BicepsFlexed, Bone, Brain,
+  MessageSquare, HelpCircle, Info, LayoutDashboard, ChevronDown, ChevronUp, Shield
+} from "lucide-react"; // Import individual Lucide icons
+
+// Create a map of icon names to their components
+const iconMap: { [key: string]: React.ElementType } = {
+  User, Send, Bath, Bitcoin, Beef, BatteryWarning, Binoculars, BicepsFlexed, Bone, Brain,
+  MessageSquare, HelpCircle, Info, LayoutDashboard, ChevronDown, ChevronUp, Shield
+};
 
 type Message = {
   id: number;
@@ -17,6 +27,7 @@ type Player = {
   name: string;
   teamId: number;
   gameId: number;
+  icon: string; // Add icon field
 };
 
 export default function HelpPage() {
@@ -144,14 +155,30 @@ export default function HelpPage() {
     }
   };
 
-  // Helper to get sender name
-  const getSenderName = (senderId: string) => {
-    if (session?.user?.id === senderId) return session.user.name;
-    const player = players.find(p => p.id.toString() === senderId);
-    if (player) return player.name;
-    const admin = adminUsers.find(a => a.id === senderId); // Check if sender is an admin
-    if (admin) return admin.name;
-    return "Unknown";
+  // Helper to get sender info (name and icon)
+  const getSenderInfo = (senderId: string) => {
+    let name = "Unknown";
+    let icon = "User"; // Default icon
+
+    if (session?.user?.id === senderId) {
+      name = session.user.name || "You";
+      // Assuming session.user might have an icon field if it's an admin/judge
+      // For now, let's use a default or a specific admin icon if available
+      icon = "Shield"; // Default for admin/judge
+    } else {
+      const player = players.find(p => p.id.toString() === senderId);
+      if (player) {
+        name = player.name;
+        icon = player.icon || "User"; // Use player's icon or default
+      } else {
+        const admin = adminUsers.find(a => a.id === senderId);
+        if (admin) {
+          name = admin.name;
+          icon = "Shield"; // Default for admin/judge
+        }
+      }
+    }
+    return { name, icon };
   };
 
 
@@ -208,26 +235,32 @@ export default function HelpPage() {
               </select>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex items-end space-x-3 ${
-                    msg.senderId === session.user.id ? "flex-row-reverse" : ""
-                  }`}
-                >
-                  <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0"></div>
+              {messages.map((msg) => {
+                const senderInfo = getSenderInfo(msg.senderId);
+                const IconComponent: React.ElementType = iconMap[senderInfo.icon] || iconMap.User; // Fallback to User icon
+                return (
                   <div
-                    className={`p-3 rounded-2xl shadow ${
-                      msg.senderId === session.user.id
-                        ? "bg-primary rounded-br-none"
-                        : "bg-secondary rounded-bl-none"
+                    key={msg.id}
+                    className={`flex items-end space-x-3 mb-4 ${
+                      msg.senderId === session.user.id ? "flex-row-reverse" : ""
                     }`}
                   >
-                    <p className="font-bold text-sm">{getSenderName(msg.senderId)}</p>
-                    <p>{msg.message}</p>
+                    <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0 flex items-center justify-center text-white">
+                      <IconComponent className="h-5 w-5" />
+                    </div>
+                    <div
+                      className={`p-3 rounded-2xl shadow ${
+                        msg.senderId === session.user.id
+                          ? "bg-primary rounded-br-none"
+                          : "bg-secondary rounded-bl-none"
+                      }`}
+                    >
+                      <p className="font-bold text-sm">{senderInfo.name}</p>
+                      <p>{msg.message}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <form onSubmit={handleSendMessage} className="bg-card p-4 border-t border-border flex items-center">
               <input
@@ -256,26 +289,32 @@ export default function HelpPage() {
         <h1 className="text-2xl font-permanent-marker">Help Chat</h1>
       </header>
       <div className="flex-1 overflow-y-auto p-4">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex items-end space-x-3 ${
-              msg.senderId === localPlayerId?.toString() ? "flex-row-reverse" : ""
-            }`}
-          >
-            <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0"></div>
+        {messages.map((msg) => {
+          const senderInfo = getSenderInfo(msg.senderId);
+          const IconComponent: React.ElementType = iconMap[senderInfo.icon] || iconMap.User; // Fallback to User icon
+          return (
             <div
-              className={`p-3 rounded-2xl shadow ${
-                msg.senderId === localPlayerId?.toString()
-                  ? "bg-primary rounded-br-none"
-                  : "bg-secondary rounded-bl-none"
+              key={msg.id}
+              className={`flex items-end space-x-3 mb-4 ${
+                msg.senderId === localPlayerId?.toString() ? "flex-row-reverse" : ""
               }`}
             >
-              <p className="font-bold text-sm">{getSenderName(msg.senderId)}</p>
-              <p>{msg.message}</p>
+              <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0 flex items-center justify-center text-white">
+                <IconComponent className="h-5 w-5" />
+              </div>
+              <div
+                className={`p-3 rounded-2xl shadow ${
+                  msg.senderId === localPlayerId?.toString()
+                    ? "bg-primary rounded-br-none"
+                    : "bg-secondary rounded-bl-none"
+                }`}
+              >
+                <p className="font-bold text-sm">{senderInfo.name}</p>
+                <p>{msg.message}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <form onSubmit={handleSendMessage} className="bg-card p-4 border-t border-border flex items-center">
         <input

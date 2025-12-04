@@ -2,7 +2,7 @@
 import { db } from "@/db";
 import { playerAdminMessages } from "@/db/schema";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/auth";
+import authOptions from "@/auth";
 import { eq, or, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 

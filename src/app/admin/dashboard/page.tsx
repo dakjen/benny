@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/auth";
+import authOptions from "@/auth";
 
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);

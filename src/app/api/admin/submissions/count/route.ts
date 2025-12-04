@@ -3,7 +3,7 @@ import { submissions, players } from "@/db/schema"; // Import players
 import { eq, and } from "drizzle-orm"; // Import and
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/auth";
+import authOptions from "@/auth";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);

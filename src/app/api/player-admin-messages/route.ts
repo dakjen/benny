@@ -3,7 +3,7 @@ import { playerAdminMessages, users, players } from "@/db/schema";
 import { eq, or, and, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/auth";
+import authOptions from "@/auth";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);

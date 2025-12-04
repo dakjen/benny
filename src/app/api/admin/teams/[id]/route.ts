@@ -3,7 +3,7 @@ import { teams } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse, NextRequest } from "next/server"; // Import NextRequest
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/auth";
+import authOptions from "@/auth";
 
 export async function PUT(
 

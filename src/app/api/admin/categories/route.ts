@@ -3,7 +3,7 @@ import { categories } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/auth";
+import authOptions from "@/auth";
 
 export async function GET() {
   const session = await getServerSession(authOptions);

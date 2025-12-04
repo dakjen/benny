@@ -1,6 +1,6 @@
 // src/proxy.ts
 import { withAuth } from "next-auth/middleware";
-import { authOptions } from "@/auth";
+import authOptions from "@/auth";
 
 export default withAuth(
   async function middleware(req) {

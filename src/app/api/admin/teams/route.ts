@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { teams } from "@/db/schema";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/auth";
+import authOptions from "@/auth";
 import { NextResponse } from "next/server";
 
 export async function GET() {

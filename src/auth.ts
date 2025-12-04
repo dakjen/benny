@@ -6,7 +6,7 @@ import { db } from "./db"; // Your Drizzle DB instance
 import { users, accounts, sessions, verificationTokens } from "./db/schema"; // Your Drizzle schema
 import bcrypt from "bcryptjs";
 
-export const authOptions: AuthOptions = {
+const authOptions: AuthOptions = {
   adapter: DrizzleAdapter(db, {
     usersTable: users,
     accountsTable: accounts,
@@ -76,7 +76,9 @@ export const authOptions: AuthOptions = {
   },
 };
 
-export const { handlers, auth, signIn, signOut } = NextAuth(authOptions);
+export default authOptions;
+
+export const { signOut } = NextAuth(authOptions);
 
 export async function signOutAndClearLocalStorage() {
   await signOut();

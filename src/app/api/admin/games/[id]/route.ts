@@ -2,7 +2,7 @@ import { db } from "@/db";
 import { games } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/auth";
+import authOptions from "@/auth";
 import { NextResponse } from "next/server";
 
 export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {

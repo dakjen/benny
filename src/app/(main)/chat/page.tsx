@@ -315,7 +315,7 @@ export default function ChatPage() {
 
     
 
-            }, [chatMessages, adminUsers, assignedIcons]); // Dependencies
+            }, [chatMessages, adminUsers]); // Dependencies
 
     
 

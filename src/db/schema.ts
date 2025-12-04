@@ -139,12 +139,8 @@ export const verificationTokens = pgTable(
 
 export const playerAdminMessages = pgTable("player_admin_messages", {
   id: serial("id").primaryKey(),
-  senderId: text("sender_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }), // Can be admin or player
-  recipientId: text("recipient_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }), // Can be admin or player
+  senderId: text("sender_id").notNull(), // Can be admin or player ID (as string)
+  recipientId: text("recipient_id").notNull(), // Can be admin ID (as string) or "all_admins"
   message: text("message").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

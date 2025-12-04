@@ -41,7 +41,7 @@ export async function GET(request: Request) {
             // Messages from player to specific admin
             and(eq(playerAdminMessages.recipientId, playerToAdminId), inArray(playerAdminMessages.senderId, adminIds)),
             // Messages from specific admin to player
-            and(eq(playerAdminMessages.senderId, playerToAdminId), inArray(playerAdminMessages.recipientId, adminIds)),
+            and(inArray(playerAdminMessages.senderId, adminIds), eq(playerAdminMessages.recipientId, playerToAdminId)),
             // Messages from player to all admins
             and(eq(playerAdminMessages.senderId, playerToAdminId), eq(playerAdminMessages.recipientId, "all_admins")),
             // Messages from all admins to player (this case is unlikely as admins respond as specific admin)

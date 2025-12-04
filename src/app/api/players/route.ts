@@ -3,6 +3,25 @@ import { players } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
+// Define the pool of available Lucide icons
+const lucideIconPool = [
+  "Bath",
+  "Bitcoin",
+  "Beef",
+  "BatteryWarning",
+  "Binoculars",
+  "BicepsFlexed",
+  "Bone",
+  "Brain",
+  "MessageSquare",
+  "HelpCircle",
+  "Info",
+  "LayoutDashboard",
+  "ChevronDown",
+  "ChevronUp",
+  "Send",
+];
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const teamId = searchParams.get("teamId");
@@ -50,12 +69,16 @@ export async function POST(request: Request) {
       );
     }
 
+    // Select a random Lucide icon from the pool
+    const randomIcon = lucideIconPool[Math.floor(Math.random() * lucideIconPool.length)];
+
     const newPlayer = await db
       .insert(players)
       .values({
         name,
         teamId,
         gameId,
+        icon: randomIcon, // Assign the random Lucide icon name
       })
       .returning();
 

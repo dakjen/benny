@@ -79,6 +79,7 @@ export const players = pgTable("players", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .$defaultFn(() => new Date()),
+  icon: text("icon"), // New: Player's assigned icon
 });
 
 // NextAuth.js tables

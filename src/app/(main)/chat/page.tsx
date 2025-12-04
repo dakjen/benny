@@ -36,19 +36,58 @@ type Game = {
 const regularIcons = [Bath, Bitcoin, Beef, BatteryWarning, Binoculars, BicepsFlexed, Bone];
 const adminIcon = Brain;
 
+// Mapping of icon components to their string names for localStorage persistence
+const iconMap = {
+  Bath: "Bath",
+  Bitcoin: "Bitcoin",
+  Beef: "Beef",
+  BatteryWarning: "BatteryWarning",
+  Binoculars: "Binoculars",
+  BicepsFlexed: "BicepsFlexed",
+  Bone: "Bone",
+  Brain: "Brain", // Include admin icon in the map
+};
+
+// Mapping of icon string names back to components for rendering
+const iconComponentMap: Record<string, React.ComponentType<any>> = {
+  "Bath": Bath,
+  "Bitcoin": Bitcoin,
+  "Beef": Beef,
+  "BatteryWarning": BatteryWarning,
+  "Binoculars": Binoculars,
+  "BicepsFlexed": BicepsFlexed,
+  "Bone": Bone,
+  "Brain": Brain,
+};
+
+
+
 export default function ChatPage() {
+
   const { data: session } = useSession();
+
   const [activeTab, setActiveTab] = useState<"team" | "game">("game"); // Default to game chat for admin
+
   const [message, setMessage] = useState("");
+
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
+
   const [localPlayerId, setLocalPlayerId] = useState<number | null>(null);
+
   const [localPlayerName, setLocalPlayerName] = useState<string | null>(null);
+
   const [localTeamId, setLocalTeamId] = useState<number | null>(null);
+
   const [localGameId, setLocalGameId] = useState<number | null>(null);
+
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
+
   const [allTeams, setAllTeams] = useState<Team[]>([]);
+
   const [allGames, setAllGames] = useState<Game[]>([]); // New state for all games
+
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
+
   const [assignedIcons, setAssignedIcons] = useState<Record<string, React.ComponentType<any>>>({}); // New state
 
   // Admin/Judge specific states

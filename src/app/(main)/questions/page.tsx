@@ -162,78 +162,79 @@ export default function QuestionsPage() {
           categoriesData = categoriesData.filter((cat: Category) => cat.gameId === selectedGameId);
           questionsData = questionsData.filter((q: Question) => q.gameId === selectedGameId);
 
-          // Player-specific logic for sequential categories
-          if (!isAdmin && localPlayerId) {
-            let playerProgressData = { currentCategoryId: null, completedCategories: "[]" }; // Initialize with default
-
-            // Fetch player progress
-            const playerProgressResponse = await fetch(`/api/public/player-progress?playerId=${localPlayerId}`);
-            if (playerProgressResponse.ok) {
-              playerProgressData = await playerProgressResponse.json();
-              setPlayerCurrentCategoryId(playerProgressData.currentCategoryId);
-              setPlayerCompletedCategories(JSON.parse(playerProgressData.completedCategories || "[]"));
-            } else {
-              console.error("Failed to fetch player progress.");
-              setPlayerCurrentCategoryId(null);
-              setPlayerCompletedCategories([]);
-            }
-
-            // Fetch player submissions
-            const submissionsResponse = await fetch(`/api/public/submissions?playerId=${localPlayerId}`);
-            if (submissionsResponse.ok) {
-              const submissionsData = await submissionsResponse.json();
-              setAllSubmissions(submissionsData);
-            } else {
-              console.error("Failed to fetch player submissions.");
-              setAllSubmissions([]);
-            }
-
-            // Determine if there are any sequential categories in this game
-            const gameHasSequentialCategories = categoriesData.some((cat: Category) => cat.isSequential);
-
-            if (gameHasSequentialCategories) {
-              console.log("Player-specific logic: gameHasSequentialCategories is true");
-              console.log("Current playerCurrentCategoryId:", playerCurrentCategoryId);
-              console.log("playerProgressData.currentCategoryId:", playerProgressData.currentCategoryId);
-
-              // If playerCurrentCategoryId is null, find the first uncompleted sequential category
-              if (playerProgressData.currentCategoryId === null) {
-                console.log("playerProgressData.currentCategoryId is null, attempting to find first uncompleted sequential category.");
-                const firstUncompletedSequentialCategory = categoriesData
-                  .filter((cat: Category) => cat.isSequential && !playerCompletedCategories.includes(cat.id))
-                  .sort((a: Category, b: Category) => a.order - b.order)[0];
-
-                if (firstUncompletedSequentialCategory) {
-                  console.log("Found firstUncompletedSequentialCategory:", firstUncompletedSequentialCategory.id);
-                  setPlayerCurrentCategoryId(firstUncompletedSequentialCategory.id);
-                  // Also update the backend to set this as the current category
-                  await fetch("/api/public/player-progress", {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      playerId: localPlayerId,
-                      currentCategoryId: firstUncompletedSequentialCategory.id,
-                    }),
-                  });
-                } else {
-                  console.log("No uncompleted sequential category found.");
-                }
-              }
-
-              // Filter categories to only show the current one if sequential
-              if (playerCurrentCategoryId !== null) {
-                console.log("Filtering categories for current playerCurrentCategoryId:", playerCurrentCategoryId);
-                categoriesData = categoriesData.filter((cat: Category) => cat.id === playerCurrentCategoryId);
-                questionsData = questionsData.filter((q: Question) => q.categoryId === playerCurrentCategoryId);
-              } else {
-                // If no current category is set, and there are sequential categories, show nothing
-                console.log("No playerCurrentCategoryId set, showing nothing for sequential categories.");
-                categoriesData = [];
-                questionsData = [];
-              }
-            }
-          }
-
+                      // Player-specific logic for sequential categories
+                      if (!isAdmin && localPlayerId) {
+                        let playerProgressData = { currentCategoryId: null, completedCategories: "[]" }; // Initialize with default
+          
+                        // Fetch player progress
+                        const playerProgressResponse = await fetch(`/api/public/player-progress?playerId=${localPlayerId}`);
+                        if (playerProgressResponse.ok) {
+                          playerProgressData = await playerProgressResponse.json();
+                          setPlayerCompletedCategories(JSON.parse(playerProgressData.completedCategories || "[]"));
+                        } else {
+                          console.error("Failed to fetch player progress.");
+                          setPlayerCurrentCategoryId(null); // Still set state for later renders
+                          setPlayerCompletedCategories([]);
+                        }
+          
+                        // Fetch player submissions
+                        const submissionsResponse = await fetch(`/api/public/submissions?playerId=${localPlayerId}`);
+                        if (submissionsResponse.ok) {
+                          const submissionsData = await submissionsResponse.json();
+                          setAllSubmissions(submissionsData);
+                        } else {
+                          console.error("Failed to fetch player submissions.");
+                          setAllSubmissions([]);
+                        }
+          
+                        // Determine if there are any sequential categories in this game
+                        const gameHasSequentialCategories = categoriesData.some((cat: Category) => cat.isSequential);
+          
+                        let effectiveCurrentCategoryId = playerProgressData.currentCategoryId;
+          
+                        if (gameHasSequentialCategories) {
+                          console.log("Player-specific logic: gameHasSequentialCategories is true");
+                          console.log("Current effectiveCurrentCategoryId:", effectiveCurrentCategoryId);
+          
+                          // If effectiveCurrentCategoryId is null, find the first uncompleted sequential category
+                          if (effectiveCurrentCategoryId === null) {
+                            console.log("effectiveCurrentCategoryId is null, attempting to find first uncompleted sequential category.");
+                            const firstUncompletedSequentialCategory = categoriesData
+                              .filter((cat: Category) => cat.isSequential && !playerCompletedCategories.includes(cat.id))
+                              .sort((a: Category, b: Category) => a.order - b.order)[0];
+          
+                            if (firstUncompletedSequentialCategory) {
+                              console.log("Found firstUncompletedSequentialCategory:", firstUncompletedSequentialCategory.id);
+                              effectiveCurrentCategoryId = firstUncompletedSequentialCategory.id;
+                              // Also update the backend to set this as the current category
+                              await fetch("/api/public/player-progress", {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  playerId: localPlayerId,
+                                  currentCategoryId: firstUncompletedSequentialCategory.id,
+                                }),
+                              });
+                            } else {
+                              console.log("No uncompleted sequential category found.");
+                            }
+                          }
+          
+                          // Filter categories to only show the current one if sequential
+                          if (effectiveCurrentCategoryId !== null) {
+                            console.log("Filtering categories for current effectiveCurrentCategoryId:", effectiveCurrentCategoryId);
+                            categoriesData = categoriesData.filter((cat: Category) => cat.id === effectiveCurrentCategoryId);
+                            questionsData = questionsData.filter((q: Question) => q.categoryId === effectiveCurrentCategoryId);
+                          } else {
+                            // If no current category is set, and there are sequential categories, show nothing
+                            console.log("No effectiveCurrentCategoryId set, showing nothing for sequential categories.");
+                            categoriesData = [];
+                            questionsData = [];
+                          }
+                        }
+                        // Update the state variable after all synchronous logic has been applied
+                        setPlayerCurrentCategoryId(effectiveCurrentCategoryId);
+                      }
           setCategories(categoriesData);
           setQuestions(questionsData);
         } catch (error) {

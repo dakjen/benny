@@ -75,37 +75,27 @@ export default function ChatPage() {
 
 
   useEffect(() => {
-    // console.log("Chat Page: localStorage useEffect running...");
-    // console.log("  Current session in localStorage useEffect:", session);
-    // // For regular players, get info from localStorage
-    // if (!session?.user) {
-    //   const storedPlayerId = localStorage.getItem("playerId");
-    //   const storedPlayerName = localStorage.getItem("playerName");
-    //   const storedTeamId = localStorage.getItem("teamId");
-    //   const storedGameId = localStorage.getItem("gameId");
+    // For regular players, get info from localStorage
+    if (!session?.user) {
+      const storedPlayerId = localStorage.getItem("playerId");
+      const storedPlayerName = localStorage.getItem("playerName");
+      const storedTeamId = localStorage.getItem("teamId");
+      const storedGameId = localStorage.getItem("gameId");
 
-    //   console.log("  Stored localStorage values:", { storedPlayerId, storedPlayerName, storedTeamId, storedGameId });
-
-    //   // Only update state if the value has actually changed
-    //   if (storedPlayerId && Number(storedPlayerId) !== localPlayerId) {
-    //     setLocalPlayerId(Number(storedPlayerId));
-    //     console.log("  setLocalPlayerId called:", storedPlayerId);
-    //   }
-    //   if (storedPlayerName && storedPlayerName !== localPlayerName) {
-    //     setLocalPlayerName(storedPlayerName);
-    //     console.log("  setLocalPlayerName called:", storedPlayerName);
-    //   }
-    //   if (storedTeamId && Number(storedTeamId) !== localTeamId) {
-    //     setLocalTeamId(Number(storedTeamId));
-    //     console.log("  setLocalTeamId called:", storedTeamId);
-    //   }
-    //   if (storedGameId && Number(storedGameId) !== localGameId) {
-    //     setLocalGameId(Number(storedGameId));
-    //     console.log("  setLocalGameId called:", storedGameId);
-    //   }
-    // } else {
-    //   console.log("  Session user exists, not reading from localStorage for player info.");
-    // }
+      // Only update state if the value has actually changed
+      if (storedPlayerId && Number(storedPlayerId) !== localPlayerId) {
+        setLocalPlayerId(Number(storedPlayerId));
+      }
+      if (storedPlayerName && storedPlayerName !== localPlayerName) {
+        setLocalPlayerName(storedPlayerName);
+      }
+      if (storedTeamId && Number(storedTeamId) !== localTeamId) {
+        setLocalTeamId(Number(storedTeamId));
+      }
+      if (storedGameId && Number(storedGameId) !== localGameId) {
+        setLocalGameId(Number(storedGameId));
+      }
+    }
   }, [session, localPlayerId, localPlayerName, localTeamId, localGameId]);
 
   // Supabase Realtime subscription

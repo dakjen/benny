@@ -36,6 +36,30 @@ type Game = {
 const regularIcons = [Bath, Bitcoin, Beef, BatteryWarning, Binoculars, BicepsFlexed, Bone];
 const adminIcon = Brain;
 
+// Mapping of icon components to their string names for localStorage persistence
+const iconMap = {
+  Bath: Bath,
+  Bitcoin: Bitcoin,
+  Beef: Beef,
+  BatteryWarning: BatteryWarning,
+  Binoculars: Binoculars,
+  BicepsFlexed: BicepsFlexed,
+  Bone: Bone,
+  Brain: Brain, // Include admin icon in the map
+};
+
+// Mapping of icon string names back to components for rendering
+const iconComponentMap: Record<string, React.ComponentType<any>> = {
+  "Bath": Bath,
+  "Bitcoin": Bitcoin,
+  "Beef": Beef,
+  "BatteryWarning": BatteryWarning,
+  "Binoculars": Binoculars,
+  "BicepsFlexed": BicepsFlexed,
+  "Bone": Bone,
+  "Brain": Brain,
+};
+
 export default function ChatPage() {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<"team" | "game">("game"); // Default to game chat for admin
@@ -182,19 +206,7 @@ export default function ChatPage() {
 
     
 
-            // Load assignedIcons from localStorage on mount
-  useEffect(() => {
-    const storedAssignedIcons = localStorage.getItem("assignedIcons");
-    if (storedAssignedIcons) {
-      try {
-        setAssignedIcons(JSON.parse(storedAssignedIcons));
-      } catch (error) {
-        console.error("Error parsing assignedIcons from localStorage:", error);
-      }
-    }
-  }, []);
-
-  // New useEffect for assigning unique icons
+            // New useEffect for assigning unique icons
 
     
 
@@ -202,195 +214,163 @@ export default function ChatPage() {
 
     
 
-              const newAssignedIcons = { ...assignedIcons };
+                            const newAssignedIcons: Record<string, string> = { ...assignedIcons };
 
     
 
-              let changed = false;
+                            let changed = false;
 
     
 
-          
+              
 
     
 
-              // Collect all sender IDs from chatMessages
+                            // Collect all sender IDs from chatMessages
 
     
 
-              const senderIdsInChat = new Set(chatMessages.map(msg => msg.sender_id));
+                            const senderIdsInChat = new Set(chatMessages.map(msg => msg.sender_id));
 
     
 
-          
+              
 
     
 
-              // Iterate through each sender in the chat
+                            // Get available regular icon names
 
     
 
-              senderIdsInChat.forEach(senderId => {
+                            const regularIconNames = Object.keys(iconMap).filter(name => name !== "Brain"); // Exclude admin icon name
 
     
 
-                if (!newAssignedIcons[senderId]) { // Only assign if not already assigned
+                            const currentlyUsedRegularIconNames = new Set(
 
     
 
-                  const isAdminSender = adminUsers.some(admin => admin.id === senderId);
+                              Object.values(newAssignedIcons).filter(iconName => regularIconNames.includes(iconName))
 
     
 
-          
+                            );
 
     
 
-                  if (isAdminSender) {
+                            const availableIconNames = regularIconNames.filter(iconName => !currentlyUsedRegularIconNames.has(iconName));
 
     
 
-                    newAssignedIcons[senderId] = adminIcon;
+              
 
     
 
-                  } else {
+                            // Iterate through each sender in the chat
 
     
 
-                    // Find an unused regular icon
+                            senderIdsInChat.forEach(senderId => {
 
     
 
-                    const currentlyUsedRegularIcons = new Set(
+                              if (!newAssignedIcons[senderId]) { // Only assign if not already assigned
 
     
 
-                      regularIcons.filter(icon => Object.values(newAssignedIcons).includes(icon))
+                                const isAdminSender = adminUsers.some(admin => String(admin.id) === String(senderId));
 
     
 
-                    );
+              
 
     
 
-                    const availableIcons = regularIcons.filter(icon => !currentlyUsedRegularIcons.has(icon));
+                                if (isAdminSender) {
 
     
 
-          
+                                  newAssignedIcons[senderId] = "Brain"; // Assign admin icon by its string name
 
     
 
-                                        let iconToAssign;
+                                } else {
 
     
 
-          
+                                  let iconNameToAssign: string;
 
     
 
-                                        if (availableIcons.length > 0) {
+                                  if (availableIconNames.length > 0) {
 
     
 
-          
+                                    // Assign a random available unique icon name
 
     
 
-                                          // Assign a random available unique icon
+                                    const randomIndex = Math.floor(Math.random() * availableIconNames.length);
 
     
 
-          
+                                    iconNameToAssign = availableIconNames[randomIndex];
 
     
 
-                                          const randomIndex = Math.floor(Math.random() * availableIcons.length);
+                                    // Remove the assigned icon from available to ensure uniqueness
 
     
 
-          
+                                    availableIconNames.splice(randomIndex, 1);
 
     
 
-                                          iconToAssign = availableIcons[randomIndex];
+                                  } else {
 
     
 
-          
+                                    // Fallback: all regular icons are used, cycle through them based on hash
 
     
 
-                                        } else {
+                                    const hash = senderId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
 
     
 
-          
+                                    const index = hash % regularIconNames.length;
 
     
 
-                                          // Fallback: all regular icons are used, cycle through them based on hash
+                                    iconNameToAssign = regularIconNames[index];
 
     
 
-          
+                                  }
 
     
 
-                                          const hash = senderId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                                  newAssignedIcons[senderId] = iconNameToAssign;
 
     
 
-          
+                                }
 
     
 
-                                          const index = hash % regularIcons.length;
+                                changed = true;
 
     
 
-          
+                              }
 
     
 
-                                          iconToAssign = regularIcons[index];
+                            });
 
     
 
-          
-
-    
-
-                                        }
-
-    
-
-          
-
-    
-
-                                        newAssignedIcons[senderId] = iconToAssign;
-
-    
-
-                  }
-
-    
-
-                  changed = true;
-
-    
-
-                }
-
-    
-
-              });
-
-    
-
-          
+              
 
     
 
@@ -398,15 +378,7 @@ export default function ChatPage() {
 
     
 
-          
-
-    
-
                               setAssignedIcons(newAssignedIcons);
-
-    
-
-          
 
     
 
@@ -414,15 +386,7 @@ export default function ChatPage() {
 
     
 
-          
-
-    
-
                               localStorage.setItem("assignedIcons", JSON.stringify(newAssignedIcons));
-
-    
-
-          
 
     
 
@@ -436,433 +400,433 @@ export default function ChatPage() {
 
     
 
-            useEffect(() => {
+              useEffect(() => {
 
     
 
     
 
-              // const fetchData = async () => {
+                const fetchData = async () => {
 
     
 
     
 
-              //   try {
+                  try {
 
     
 
     
 
-              // const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
+                    const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
 
     
 
     
 
-              // const currentActiveGameId = isAdminOrJudge ? selectedAdminGameId : localGameId;
+                    const currentActiveGameId = isAdminOrJudge ? selectedAdminGameId : localGameId;
 
     
 
     
 
-      
+            
 
     
 
     
 
-              // const playersApiUrl = isAdminOrJudge ? `/api/admin/players?gameId=${currentActiveGameId}` : `/api/public/players?gameId=${currentActiveGameId}`;
+                    const playersApiUrl = isAdminOrJudge ? `/api/admin/players?gameId=${currentActiveGameId}` : `/api/public/players?gameId=${currentActiveGameId}`;
 
     
 
     
 
-              // const teamsApiUrl = isAdminOrJudge ? `/api/admin/teams?gameId=${currentActiveGameId}` : `/api/public/teams?gameId=${currentActiveGameId}`;
+                    const teamsApiUrl = isAdminOrJudge ? `/api/admin/teams?gameId=${currentActiveGameId}` : `/api/public/teams?gameId=${currentActiveGameId}`;
 
     
 
     
 
-              // const gamesApiUrl = isAdminOrJudge ? "/api/admin/games" : "/api/public/games"; // Games API for public doesn't need gameId for all games
+                    const gamesApiUrl = isAdminOrJudge ? "/api/admin/games" : "/api/public/games"; // Games API for public doesn't need gameId for all games
 
     
 
     
 
-      
+            
 
     
 
     
 
-              // // Only fetch players and teams if a game is selected or if it's a player
+                    // Only fetch players and teams if a game is selected or if it's a player
 
     
 
     
 
-              // if (currentActiveGameId) {
+                    if (currentActiveGameId) {
 
     
 
     
 
-              //   const playersResponse = await fetch(playersApiUrl);
+                      const playersResponse = await fetch(playersApiUrl);
 
     
 
     
 
-              //   if (!playersResponse.ok) {
+                      if (!playersResponse.ok) {
 
     
 
     
 
-              //     const errorText = await playersResponse.text();
+                        const errorText = await playersResponse.text();
 
     
 
     
 
-              //     console.error("Failed to fetch players:", playersResponse.status, playersResponse.statusText, errorText);
+                        console.error("Failed to fetch players:", playersResponse.status, playersResponse.statusText, errorText);
 
     
 
     
 
-              //     throw new Error(`Failed to fetch players: ${playersResponse.statusText}`);
+                        throw new Error(`Failed to fetch players: ${playersResponse.statusText}`);
 
     
 
     
 
-              //   }
+                      }
 
     
 
     
 
-              //   const playersContentType = playersResponse.headers.get('content-type');
+                      const playersContentType = playersResponse.headers.get('content-type');
 
     
 
     
 
-              //   if (!playersContentType || !playersContentType.includes('application/json')) {
+                      if (!playersContentType || !playersContentType.includes('application/json')) {
 
     
 
     
 
-              //     const errorText = await playersResponse.text();
+                        const errorText = await playersResponse.text();
 
     
 
     
 
-              //     console.error("Players API did not return JSON:", errorText);
+                        console.error("Players API did not return JSON:", errorText);
 
     
 
     
 
-              //     throw new Error("Players API did not return JSON.");
+                        throw new Error("Players API did not return JSON.");
 
     
 
     
 
-              //   }
+                      }
 
     
 
     
 
-              //   const playersData = await playersResponse.json();
+                      const playersData = await playersResponse.json();
 
     
 
     
 
-              //   console.log("Fetched players data:", playersData);
+                      console.log("Fetched players data:", playersData);
 
     
 
     
 
-              //   setAllPlayers(playersData);
+                      setAllPlayers(playersData);
 
     
 
     
 
-      
+            
 
     
 
     
 
-              //   const teamsResponse = await fetch(teamsApiUrl);
+                      const teamsResponse = await fetch(teamsApiUrl);
 
     
 
     
 
-              //   if (!teamsResponse.ok) {
+                      if (!teamsResponse.ok) {
 
     
 
     
 
-              //     const errorText = await teamsResponse.text();
+                        const errorText = await teamsResponse.text();
 
     
 
     
 
-              //     console.error("Failed to fetch teams:", teamsResponse.status, teamsResponse.statusText, errorText);
+                        console.error("Failed to fetch teams:", teamsResponse.status, teamsResponse.statusText, errorText);
 
     
 
     
 
-              //     throw new Error(`Failed to fetch teams: ${teamsResponse.statusText}`);
+                        throw new Error(`Failed to fetch teams: ${teamsResponse.statusText}`);
 
     
 
     
 
-              //   }
+                      }
 
     
 
     
 
-              //   const teamsContentType = teamsResponse.headers.get('content-type');
+                      const teamsContentType = teamsResponse.headers.get('content-type');
 
     
 
     
 
-              //   if (!teamsContentType || !teamsContentType.includes('application/json')) {
+                      if (!teamsContentType || !teamsContentType.includes('application/json')) {
 
     
 
     
 
-              //     const errorText = await teamsResponse.text();
+                        const errorText = await teamsResponse.text();
 
     
 
     
 
-              //     console.error("Teams API did not return JSON:", errorText);
+                        console.error("Teams API did not return JSON:", errorText);
 
     
 
     
 
-              //     throw new Error("Teams API did not return JSON.");
+                        throw new Error("Teams API did not return JSON.");
 
     
 
     
 
-              //   }
+                      }
 
     
 
     
 
-              //   const teamsData = await teamsResponse.json();
+                      const teamsData = await teamsResponse.json();
 
     
 
     
 
-              //   console.log("Fetched teams data:", teamsData);
+                      console.log("Fetched teams data:", teamsData);
 
     
 
     
 
-              //   setAllTeams(teamsData);
+                      setAllTeams(teamsData);
 
     
 
     
 
-              // } else {
+                    } else {
 
     
 
     
 
-              //   // Clear players and teams if no game is selected for admin
+                      // Clear players and teams if no game is selected for admin
 
     
 
     
 
-              //   setAllPlayers([]);
+                      setAllPlayers([]);
 
     
 
     
 
-              //   setAllTeams([]);
+                      setAllTeams([]);
 
     
 
     
 
-              // }
+                    }
 
     
 
     
 
-      
+            
 
     
 
     
 
-              // // Always fetch all games for admin/judge
+                    // Always fetch all games for admin/judge
 
     
 
     
 
-              // const gamesResponse = await fetch(gamesApiUrl);
+                    const gamesResponse = await fetch(gamesApiUrl);
 
     
 
     
 
-              // if (!gamesResponse.ok) {
+                    if (!gamesResponse.ok) {
 
     
 
     
 
-              //   const errorText = await gamesResponse.text();
+                      const errorText = await gamesResponse.text();
 
     
 
     
 
-              //   console.error("Failed to fetch games:", gamesResponse.status, gamesResponse.statusText, errorText);
+                      console.error("Failed to fetch games:", gamesResponse.status, gamesResponse.statusText, errorText);
 
     
 
     
 
-              //   throw new Error(`Failed to fetch games: ${gamesResponse.statusText}`);
+                      throw new Error(`Failed to fetch games: ${gamesResponse.statusText}`);
 
     
 
     
 
-              // }
+                    }
 
     
 
     
 
-              // const gamesContentType = gamesResponse.headers.get('content-type');
+                    const gamesContentType = gamesResponse.headers.get('content-type');
 
     
 
     
 
-              // if (!gamesContentType || !gamesContentType.includes('application/json')) {
+                    if (!gamesContentType || !gamesContentType.includes('application/json')) {
 
     
 
     
 
-              //   const errorText = await gamesResponse.text();
+                      const errorText = await gamesResponse.text();
 
     
 
     
 
-              //   console.error("Games API did not return JSON:", errorText);
+                      console.error("Games API did not return JSON:", errorText);
 
     
 
     
 
-              //   throw new Error("Games API did not return JSON.");
+                      throw new Error("Games API did not return JSON.");
 
     
 
     
 
-              // }
+                    }
 
     
 
     
 
-              // const gamesData = await gamesResponse.json();
+                    const gamesData = await gamesResponse.json();
 
     
 
     
 
-              // console.log("Fetched games data:", gamesData);
+                    console.log("Fetched games data:", gamesData);
 
     
 
     
 
-              // setAllGames(gamesData);
+                    setAllGames(gamesData);
 
     
 
     
 
-              // console.log("allGames after fetch:", gamesData);
+                    console.log("allGames after fetch:", gamesData);
 
     
 
     
 
-              //   } catch (error) {
+                  } catch (error) {
 
     
 
     
 
-              // console.error("Error fetching chat data:", error);
+                    console.error("Error fetching chat data:", error);
 
     
 
     
 
-              //   }
+                  }
 
     
 
     
 
-              // };
+                };
 
     
 
     
 
-              // fetchData();
+                fetchData();
 
     
 
     
 
-        }, [session, localGameId, selectedAdminGameId]);
+              }, [session, localGameId, selectedAdminGameId]);
 
   console.log("allGames in render:", allGames);
 
@@ -926,7 +890,8 @@ export default function ChatPage() {
   );
 
   const isAdmin = (senderId: string) => {
-    return adminUsers.some(admin => admin.id === senderId);
+    console.log("isAdmin check: senderId:", senderId, "adminUsers:", adminUsers);
+    return adminUsers.some(admin => String(admin.id) === String(senderId));
   };
 
   const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
@@ -1025,7 +990,8 @@ export default function ChatPage() {
                     <div className="space-y-4">
                       {chatMessages.map((msg) => {
                         const isAdminSender = isAdmin(msg.sender_id);
-                        const Icon = assignedIcons[msg.sender_id] || regularIcons[0]; // Fallback
+                        console.log("Message sender_id:", msg.sender_id, "isAdminSender:", isAdminSender);
+                        const Icon = iconComponentMap[assignedIcons[msg.sender_id]] || regularIcons[0]; // Fallback
                         return (
                           <div
                             key={msg.id}

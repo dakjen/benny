@@ -110,31 +110,71 @@ export default function ChatPage() {
 
   // Supabase Realtime subscription
   useEffect(() => {
+    const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
+
+    let channelName = 'chat_messages';
+    let filter: { [key: string]: string | number | null } = {};
+
+    if (!isAdminOrJudge) {
+      if (localGameId) {
+        channelName = `chat_messages_game_${localGameId}`;
+        filter = { game_id: localGameId };
+        if (activeTab === "team" && localTeamId) {
+          filter = { ...filter, team_id: localTeamId };
+        } else if (activeTab === "game") {
+          filter = { ...filter, team_id: null }; // Explicitly filter for game chat (team_id is null)
+        }
+      } else {
+        // If no localGameId for a player, don't subscribe
+        return;
+      }
+    }
+
     const channel = supabase
-      .channel('chat_messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+      .channel(channelName)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `game_id=eq.${filter.game_id}${filter.team_id !== undefined ? `&team_id=${filter.team_id === null ? 'is.null' : `eq.${filter.team_id}`}` : ''}` }, (payload) => {
         console.log('New message received:', payload.new);
         const newMessage = payload.new as Message;
         setChatMessages((prevMessages) => [...prevMessages, newMessage]);
       })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to chat_messages channel!');
+          console.log(`Successfully subscribed to ${channelName} channel!`);
         }
         if (status === 'CHANNEL_ERROR') {
-          console.error('There was an error subscribing to the chat_messages channel.');
+          console.error(`There was an error subscribing to the ${channelName} channel.`);
         }
         if (status === 'TIMED_OUT') {
-          console.error('Subscription to chat_messages channel timed out.');
+          console.error(`Subscription to ${channelName} channel timed out.`);
         }
       });
 
     // Fetch initial messages
     const fetchInitialMessages = async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('messages')
         .select('*')
         .order('created_at', { ascending: true });
+
+      if (!isAdminOrJudge) {
+        // For players, filter by their game ID
+        if (localGameId) {
+          query = query.eq('game_id', localGameId);
+          // If activeTab is 'team', also filter by team_id
+          if (activeTab === "team" && localTeamId) {
+            query = query.eq('team_id', localTeamId);
+          } else if (activeTab === "game") {
+            // For game chat, team_id should be null
+            query = query.is('team_id', null);
+          }
+        } else {
+          // If no localGameId, no messages should be fetched for players
+          setChatMessages([]);
+          return;
+        }
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching initial messages:', error);
@@ -145,13 +185,10 @@ export default function ChatPage() {
 
     fetchInitialMessages();
 
-        return () => {
-
-          supabase.removeChannel(channel);
-
-        };
-
-      }, []);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [localGameId, localTeamId, activeTab, session]);
 
     
 

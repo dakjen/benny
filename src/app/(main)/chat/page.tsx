@@ -182,7 +182,19 @@ export default function ChatPage() {
 
     
 
-            // New useEffect for assigning unique icons
+            // Load assignedIcons from localStorage on mount
+  useEffect(() => {
+    const storedAssignedIcons = localStorage.getItem("assignedIcons");
+    if (storedAssignedIcons) {
+      try {
+        setAssignedIcons(JSON.parse(storedAssignedIcons));
+      } catch (error) {
+        console.error("Error parsing assignedIcons from localStorage:", error);
+      }
+    }
+  }, []);
+
+  // New useEffect for assigning unique icons
 
     
 
@@ -382,15 +394,39 @@ export default function ChatPage() {
 
     
 
-              if (changed) {
+                            if (changed) {
 
     
 
-                setAssignedIcons(newAssignedIcons);
+          
 
     
 
-              }
+                              setAssignedIcons(newAssignedIcons);
+
+    
+
+          
+
+    
+
+                              // Save to localStorage
+
+    
+
+          
+
+    
+
+                              localStorage.setItem("assignedIcons", JSON.stringify(newAssignedIcons));
+
+    
+
+          
+
+    
+
+                            }
 
     
 
@@ -1103,8 +1139,8 @@ export default function ChatPage() {
                       isAdminSender
                         ? "bg-black text-white"
                         : msg.sender_id === String(localPlayerId)
-                        ? "bg-primary rounded-br-none"
-                        : "bg-secondary rounded-bl-none"
+                        ? "bg-primary rounded-br-none text-white"
+                        : "bg-secondary rounded-bl-none text-white"
                     }`}
                   >
                     <p className="font-bold text-sm">{msg.sender_name}</p>

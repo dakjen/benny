@@ -36,30 +36,6 @@ type Game = {
 const regularIcons = [Bath, Bitcoin, Beef, BatteryWarning, Binoculars, BicepsFlexed, Bone];
 const adminIcon = Brain;
 
-// Mapping of icon components to their string names for localStorage persistence
-const iconMap = {
-  Bath: Bath,
-  Bitcoin: Bitcoin,
-  Beef: Beef,
-  BatteryWarning: BatteryWarning,
-  Binoculars: Binoculars,
-  BicepsFlexed: BicepsFlexed,
-  Bone: Bone,
-  Brain: Brain, // Include admin icon in the map
-};
-
-// Mapping of icon string names back to components for rendering
-const iconComponentMap: Record<string, React.ComponentType<any>> = {
-  "Bath": Bath,
-  "Bitcoin": Bitcoin,
-  "Beef": Beef,
-  "BatteryWarning": BatteryWarning,
-  "Binoculars": Binoculars,
-  "BicepsFlexed": BicepsFlexed,
-  "Bone": Bone,
-  "Brain": Brain,
-};
-
 export default function ChatPage() {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<"team" | "game">("game"); // Default to game chat for admin
@@ -214,183 +190,163 @@ export default function ChatPage() {
 
     
 
-                            const newAssignedIcons: Record<string, string> = { ...assignedIcons };
+              const newAssignedIcons = { ...assignedIcons };
 
     
 
-                            let changed = false;
+              let changed = false;
 
     
 
-              
+          
 
     
 
-                            // Collect all sender IDs from chatMessages
+              // Collect all sender IDs from chatMessages
 
     
 
-                            const senderIdsInChat = new Set(chatMessages.map(msg => msg.sender_id));
+              const senderIdsInChat = new Set(chatMessages.map(msg => msg.sender_id));
 
     
 
-              
+          
 
     
 
-                            // Get available regular icon names
+              // Iterate through each sender in the chat
 
     
 
-                            const regularIconNames = Object.keys(iconMap).filter(name => name !== "Brain"); // Exclude admin icon name
+              senderIdsInChat.forEach(senderId => {
 
     
 
-                            const currentlyUsedRegularIconNames = new Set(
+                if (!newAssignedIcons[senderId]) { // Only assign if not already assigned
 
     
 
-                              Object.values(newAssignedIcons).filter(iconName => regularIconNames.includes(iconName))
+                  const isAdminSender = adminUsers.some(admin => String(admin.id) === String(senderId));
 
     
 
-                            );
+          
 
     
 
-                            const availableIconNames = regularIconNames.filter(iconName => !currentlyUsedRegularIconNames.has(iconName));
+                  if (isAdminSender) {
 
     
 
-              
+                    newAssignedIcons[senderId] = adminIcon;
 
     
 
-                            // Iterate through each sender in the chat
+                  } else {
 
     
 
-                            senderIdsInChat.forEach(senderId => {
+                    // Find an unused regular icon
 
     
 
-                              if (!newAssignedIcons[senderId]) { // Only assign if not already assigned
+                    const currentlyUsedRegularIcons = new Set(
 
     
 
-                                const isAdminSender = adminUsers.some(admin => String(admin.id) === String(senderId));
+                      regularIcons.filter(icon => Object.values(newAssignedIcons).includes(icon))
 
     
 
-              
+                    );
 
     
 
-                                if (isAdminSender) {
+                    const availableIcons = regularIcons.filter(icon => !currentlyUsedRegularIcons.has(icon));
 
     
 
-                                  newAssignedIcons[senderId] = "Brain"; // Assign admin icon by its string name
+          
 
     
 
-                                } else {
+                    let iconToAssign;
 
     
 
-                                  let iconNameToAssign: string;
+                    if (availableIcons.length > 0) {
 
     
 
-                                  if (availableIconNames.length > 0) {
+                      // Assign a random available unique icon
 
     
 
-                                    // Assign a random available unique icon name
+                      const randomIndex = Math.floor(Math.random() * availableIcons.length);
 
     
 
-                                    const randomIndex = Math.floor(Math.random() * availableIconNames.length);
+                      iconToAssign = availableIcons[randomIndex];
 
     
 
-                                    iconNameToAssign = availableIconNames[randomIndex];
+                    } else {
 
     
 
-                                    // Remove the assigned icon from available to ensure uniqueness
+                      // Fallback: all regular icons are used, cycle through them based on hash
 
     
 
-                                    availableIconNames.splice(randomIndex, 1);
+                      const hash = senderId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
 
     
 
-                                  } else {
+                      const index = hash % regularIcons.length;
 
     
 
-                                    // Fallback: all regular icons are used, cycle through them based on hash
+                      iconToAssign = regularIcons[index];
 
     
 
-                                    const hash = senderId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                    }
 
     
 
-                                    const index = hash % regularIconNames.length;
+                    newAssignedIcons[senderId] = iconToAssign;
 
     
 
-                                    iconNameToAssign = regularIconNames[index];
+                  }
 
     
 
-                                  }
+                  changed = true;
 
     
 
-                                  newAssignedIcons[senderId] = iconNameToAssign;
+                }
 
     
 
-                                }
+              });
 
     
 
-                                changed = true;
+          
 
     
 
-                              }
+              if (changed) {
 
     
 
-                            });
+                setAssignedIcons(newAssignedIcons);
 
     
 
-              
-
-    
-
-                            if (changed) {
-
-    
-
-                              setAssignedIcons(newAssignedIcons);
-
-    
-
-                              // Save to localStorage
-
-    
-
-                              localStorage.setItem("assignedIcons", JSON.stringify(newAssignedIcons));
-
-    
-
-                            }
+              }
 
     
 
@@ -991,7 +947,7 @@ export default function ChatPage() {
                       {chatMessages.map((msg) => {
                         const isAdminSender = isAdmin(msg.sender_id);
                         console.log("Message sender_id:", msg.sender_id, "isAdminSender:", isAdminSender);
-                        const Icon = iconComponentMap[assignedIcons[msg.sender_id]] || regularIcons[0]; // Fallback
+                        const Icon = assignedIcons[msg.sender_id] || regularIcons[0]; // Fallback
                         return (
                           <div
                             key={msg.id}

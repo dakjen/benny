@@ -77,3 +77,11 @@ export const authOptions: AuthOptions = {
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth(authOptions);
+
+export async function signOutAndClearLocalStorage() {
+  await signOut();
+  localStorage.removeItem("playerId");
+  localStorage.removeItem("playerName");
+  localStorage.removeItem("teamId");
+  localStorage.removeItem("gameId");
+}

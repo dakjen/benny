@@ -52,6 +52,9 @@ export default function QuestionsPage() {
   const [playerCompletedCategories, setPlayerCompletedCategories] = useState<
     number[]
   >([]);
+  const [playerCompletedQuestions, setPlayerCompletedQuestions] = useState<
+    number[]
+  >([]);
   const [allSubmissions, setAllSubmissions] = useState<Submission[]>([]);
   const [playerProgress, setPlayerProgress] = useState<any>(null);
   const [allCategories, setAllCategories] = useState<Category[]>([]); // Renamed from allGameCategories
@@ -225,6 +228,10 @@ export default function QuestionsPage() {
               setPlayerCompletedCategories(
                 JSON.parse(playerProgressData.completedCategories || "[]")
               );
+              setPlayerCompletedQuestions(
+                JSON.parse(playerProgressData.completedQuestions || "[]")
+              );
+              console.log("playerCompletedQuestions:", JSON.parse(playerProgressData.completedQuestions || "[]"));
             } else {
               console.error("Failed to fetch player progress.");
               setPlayerCompletedCategories([]);
@@ -301,9 +308,7 @@ export default function QuestionsPage() {
     if (questionsInCategory.length === 0) return false; // A category with no questions isn't "complete"
 
     return questionsInCategory.every((q) =>
-      allSubmissions.some(
-        (s) => s.questionId === q.id && s.teamId === localTeamId
-      )
+      playerCompletedQuestions.includes(q.id)
     );
   };
 
@@ -321,8 +326,9 @@ export default function QuestionsPage() {
     });
 
     if (response.ok) {
-      const data = await response.json();
-      setPlayerProgress(data);
+      // Update playerCompletedCategories directly
+      setPlayerCompletedCategories((prev) => [...prev, categoryId]);
+      handleSubmissionSuccess(); // Re-fetch all data to update displayableCategories
     } else {
       console.error("Failed to complete category.");
     }
@@ -473,6 +479,7 @@ export default function QuestionsPage() {
                       <ul className="p-4 border-t border-border space-y-2">
                         {questions
                           .filter((q) => q.categoryId === category.id)
+                          .filter((q) => !playerCompletedQuestions.includes(q.id))
                           .map((question) => (
                             <li
                               key={question.id}

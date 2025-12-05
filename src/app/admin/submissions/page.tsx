@@ -9,7 +9,7 @@ type Submission = {
     id: number;
     questionId: number;
     answerText: string | null;
-    photo_url: string | null;
+    submission_photos: { id: number; url: string }[]; // Changed from photo_url: string | null;
     video_url: string | null;
     status: string;
     score: number | null;
@@ -182,19 +182,24 @@ export default function SubmissionsPage() {
               <div>
                 {category.name} - {question.questionText}
               </div>
-              <div style={{ color: "#eeeeee" }}>
+              <div style={{ color: "#476c2e" }}>
                 {questions.find((q) => q.id === submission.questionId)?.points} points
               </div>
               {submission.answerText && <div>{submission.answerText}</div>}
-              {submission.photo_url && (
-                <Image
-                  src={submission.photo_url}
-                  alt="submission"
-                  width={600}
-                  height={600}
-                  className="max-w-xs cursor-pointer"
-                  onClick={() => setEnlargedPhoto(submission.photo_url)}
-                />
+              {submission.submission_photos && submission.submission_photos.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {submission.submission_photos.map((photo) => (
+                    <Image
+                      key={photo.id}
+                      src={photo.url}
+                      alt="submission"
+                      width={600}
+                      height={600}
+                      className="max-w-xs cursor-pointer"
+                      onClick={() => setEnlargedPhoto(photo.url)}
+                    />
+                  ))}
+                </div>
               )}
               {submission.video_url && (
                 <video

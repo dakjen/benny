@@ -152,10 +152,10 @@ export async function GET(req: Request) {
 
   // Group photos by submission
   const groupedSubmissions = rawSubmissions.reduce((acc, row) => {
-    const existingSubmission = acc.find((s) => s.id === row.id);
+    let existingSubmission = acc.find((s) => s.id === row.id);
 
     if (!existingSubmission) {
-      const newSubmission: any = {
+      existingSubmission = {
         id: row.id,
         playerId: row.playerId,
         questionId: row.questionId,
@@ -166,18 +166,22 @@ export async function GET(req: Request) {
         video_url: row.video_url,
         submissionType: row.submissionType,
         submission_photos: [],
+        _photoIds: new Set(), // Internal set to track photo IDs for uniqueness
       };
-      if (row.photo_url && row.photo_id) {
-        newSubmission.submission_photos.push({ id: row.photo_id, url: row.photo_url });
-      }
-      acc.push(newSubmission);
-    } else {
-      if (row.photo_url && row.photo_id) {
-        existingSubmission.submission_photos.push({ id: row.photo_id, url: row.photo_url });
-      }
+      acc.push(existingSubmission);
+    }
+
+    if (row.photo_url && row.photo_id && !existingSubmission._photoIds.has(row.photo_id)) {
+      existingSubmission.submission_photos.push({ id: row.photo_id, url: row.photo_url });
+      existingSubmission._photoIds.add(row.photo_id);
     }
     return acc;
   }, [] as any[]);
+
+  // Clean up the internal _photoIds set before returning
+  groupedSubmissions.forEach((sub) => {
+    delete sub._photoIds;
+  });
 
   return NextResponse.json(groupedSubmissions);
 }

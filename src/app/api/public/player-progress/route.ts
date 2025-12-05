@@ -18,6 +18,7 @@ export async function GET(request: Request) {
       .select({
         currentCategoryId: players.currentCategoryId,
         completedCategories: players.completedCategories,
+        completedQuestions: players.completedQuestions,
       })
       .from(players)
       .where(eq(players.id, Number(playerId)));

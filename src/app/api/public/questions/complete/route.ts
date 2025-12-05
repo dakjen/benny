@@ -15,27 +15,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Player not found" }, { status: 404 });
     }
 
-    const completedCategories = JSON.parse(player.completedCategories || "[]");
-    const question = await db.query.questions.findFirst({
-        where: (questions, { eq }) => eq(questions.id, questionId),
-        });
+    const completedQuestions = JSON.parse(player.completedQuestions || "[]");
 
-    if (!question) {
-        return NextResponse.json({ message: "Question not found" }, { status: 404 });
+    if (!completedQuestions.includes(questionId)) {
+      completedQuestions.push(questionId);
     }
 
-    if (!completedCategories.includes(question.categoryId)) {
-      completedCategories.push(question.categoryId);
-    }
-
-    await db
+    const updatedPlayer = await db
       .update(players)
       .set({
-        completedCategories: JSON.stringify(completedCategories),
+        completedQuestions: JSON.stringify(completedQuestions),
       })
-      .where(eq(players.id, playerId));
+      .where(eq(players.id, playerId))
+      .returning();
 
-    return NextResponse.json({ message: "Question marked as completed" });
+    return NextResponse.json(updatedPlayer[0]);
   } catch (error) {
     console.error("Error marking question as completed:", error);
     return NextResponse.json(

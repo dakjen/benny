@@ -76,6 +76,7 @@ export const players = pgTable("players", {
     .references(() => games.id, { onDelete: "cascade" }),
   currentCategoryId: integer("current_category_id").references(() => categories.id, { onDelete: "set null" }), // New: Player's current active category
   completedCategories: text("completed_categories").default("[]").notNull(), // New: JSON string of completed category IDs
+  completedQuestions: text("completed_questions").default("[]").notNull(), // New: JSON string of completed question IDs
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .$defaultFn(() => new Date()),

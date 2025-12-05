@@ -336,7 +336,7 @@ export function SubmissionForm({
       <div className="flex space-x-2">
         <button
           type="submit"
-          className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+          className="inline-flex justify-center rounded-md border border-transparent bg-[#7fab61] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#8fb971] focus:outline-none focus:ring-2 focus:ring-[#7fab61] focus:ring-offset-2 disabled:opacity-50"
           disabled={isSubmitting}
         >
           {isSubmitting ? "Submitting..." : "Submit"}
@@ -344,7 +344,7 @@ export function SubmissionForm({
         <button
           type="button"
           onClick={handleFinished}
-          className="inline-flex justify-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50"
+          className="inline-flex justify-center rounded-md border border-transparent bg-[#3b3b3d] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#4a4a4d] focus:outline-none focus:ring-2 focus:ring-[#3b3b3d] focus:ring-offset-2 disabled:opacity-50"
           disabled={isSubmitting}
         >
           Finished

@@ -455,10 +455,9 @@ export default function QuestionsPage() {
                 displayableCategories.map((category) => (
                   <div
                     key={category.id}
-                    className={`rounded-lg shadow-md ${
-                      !category.isSequential ? "bg-[#98abff]" : "bg-[#476c2e]"
-                    }`}
-                  >
+                                                                                                                                  className={`rounded-lg shadow-md ${
+                                                                                                                                    !category.isSequential ? "bg-[#476c2e]" : "bg-[#7fab61]"
+                                                                                                                                  }`}                  >
                     <button
                       className="w-full flex justify-between items-center p-4 font-bold text-lg"
                       onClick={() => toggleCategory(category.id)}

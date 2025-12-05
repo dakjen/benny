@@ -41,11 +41,11 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/assets/oldben.png" />
       </head>
       <body
-        className={`${manrope.variable} ${permanentMarker.variable} font-sans`}
-        style={{ height: "100%", overflow: "hidden" }}
+        className={`${manrope.variable} ${permanentMarker.variable} font-permanent-marker`}
+        style={{ height: "100%" }} // Removed overflow: "hidden"
       >
         <AuthProvider> {/* Wrap children with AuthProvider */}
-          <div style={{ display: "flex", height: "100%", flex: 1 }}>
+          <div style={{ display: "flex", height: "100%" }}>
             {children}
           </div>
         </AuthProvider>

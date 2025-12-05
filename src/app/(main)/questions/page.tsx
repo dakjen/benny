@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { ChevronDown, ChevronUp } from "lucide-react"; // Import icons for accordion
 import { SubmissionForm } from "@/components/SubmissionForm";
+import Image from "next/image";
 
 type Game = {
   id: number;
@@ -140,8 +141,7 @@ export default function QuestionsPage() {
     fetchGamesAndSetSelected();
   }, [session, localGameId]);
 
-  // Fetch categories and questions when selectedGameId changes
-  useEffect(() => {
+  const handleSubmissionSuccess = () => {
     if (selectedGameId) {
       const fetchCategoriesAndQuestions = async () => {
         try {
@@ -331,6 +331,13 @@ export default function QuestionsPage() {
       };
       fetchCategoriesAndQuestions();
     }
+  };
+
+  // Fetch categories and questions when selectedGameId changes
+  useEffect(() => {
+    if (selectedGameId) {
+      handleSubmissionSuccess(); // Initial fetch
+    }
   }, [selectedGameId, session, localPlayerId, localTeamId, playerProgress]); // Added dependencies
 
   const toggleCategory = (categoryId: number) => {
@@ -491,9 +498,19 @@ export default function QuestionsPage() {
 
     return (
       <div className="flex flex-col h-full bg-card text-foreground">
-<div className="p-2 sm:p-4">
+<div className="p-2 sm:p-4 flex-1 overflow-y-auto max-h-full">
           {selectedGameId ? (
             <div className="space-y-4">
+              <p className="text-center text-lg font-bold mb-4">
+                Have fun, be safe, and answer as many questions as you can.
+              </p>
+              <Image
+                src="/assets/oldben.png"
+                alt="Old Ben"
+                width={200}
+                height={200}
+                className="mx-auto mb-4 rounded-lg shadow-md"
+              />
               {gameHasSequentialCategories && currentCategory ? (
                 // Existing logic for sequential categories
                 <div
@@ -519,7 +536,7 @@ export default function QuestionsPage() {
                         .map((question) => (
                           <li
                             key={question.id}
-                            className="p-3 bg-card rounded-lg shadow-sm"
+                            className="p-3 bg-[#0b2d65] rounded-lg shadow-sm"
                           >
                             <p className="font-bold">{question.questionText}</p>
                             <p className="text-sm text-gray-400">
@@ -529,6 +546,7 @@ export default function QuestionsPage() {
                               <SubmissionForm
                                 questionId={question.id}
                                 gameId={selectedGameId}
+                                onSubmissionSuccess={handleSubmissionSuccess}
                               />
                             )}
                           </li>
@@ -549,7 +567,9 @@ export default function QuestionsPage() {
                 categories.map((category) => (
                   <div
                     key={category.id}
-                    className="bg-secondary rounded-lg shadow-md"
+                    className={`rounded-lg shadow-md ${
+                      !category.isSequential ? "bg-[#476c2e]" : "bg-secondary"
+                    }`}
                   >
                     <button
                       className="w-full flex justify-between items-center p-4 font-bold text-lg"
@@ -579,11 +599,11 @@ export default function QuestionsPage() {
                                 {question.points} points
                               </p>
                               {selectedGameId && (
-                                <SubmissionForm
-                                  questionId={question.id}
-                                  gameId={selectedGameId}
-                                />
-                              )}
+                                                              <SubmissionForm
+                                                                questionId={question.id}
+                                                                gameId={selectedGameId}
+                                                                onSubmissionSuccess={handleSubmissionSuccess}
+                                                              />                              )}
                             </li>
                           ))}
                       </ul>

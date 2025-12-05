@@ -251,8 +251,8 @@ export default function HelpPage() {
                     <div
                       className={`p-3 rounded-2xl shadow ${
                         msg.senderId === session.user.id
-                          ? "bg-primary rounded-br-none"
-                          : "bg-secondary rounded-bl-none"
+                          ? "bg-[#476c2e] rounded-br-none"
+                          : "bg-[#476c2e] rounded-bl-none"
                       }`}
                     >
                       <p className="font-bold text-sm">{senderInfo.name}</p>
@@ -284,8 +284,17 @@ export default function HelpPage() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-card text-foreground">
-      <header className="bg-background p-4 text-center z-10 shadow-md">
+    <div
+      className="relative flex flex-col h-full bg-card text-foreground" // Added relative for pseudo-element positioning
+      style={{
+        backgroundImage: `url('/assets/benfunnyold.png')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {/* Overlay for opacity */}
+      <div className="absolute inset-0 bg-black opacity-20"></div>
+      <header className="relative bg-background p-4 text-center z-10 shadow-md"> {/* Added relative and z-10 */}
         <h1 className="text-2xl font-permanent-marker">Help Chat</h1>
       </header>
       <div className="flex-1 overflow-y-auto p-4">
@@ -305,8 +314,8 @@ export default function HelpPage() {
               <div
                 className={`p-3 rounded-2xl shadow ${
                   msg.senderId === localPlayerId?.toString()
-                    ? "bg-primary rounded-br-none"
-                    : "bg-secondary rounded-bl-none"
+                    ? "bg-[#476c2e] rounded-br-none"
+                    : "bg-[#476c2e] rounded-bl-none"
                 }`}
               >
                 <p className="font-bold text-sm">{senderInfo.name}</p>

@@ -68,6 +68,8 @@ export const teams = pgTable("teams", {
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  userId: text("user_id") // New: Link to the users table
+    .references(() => users.id, { onDelete: "cascade" }),
   teamId: integer("team_id")
     .notNull()
     .references(() => teams.id, { onDelete: "cascade" }),

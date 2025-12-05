@@ -16,8 +16,7 @@ export function BottomNav() {
     links.push({ href: "/chat", label: "Chat", icon: MessageSquare });
   }
 
-  // Add Submissions Summary link for all users
-  links.push({ href: "/admin/submissions/game-summary", label: "Submissions", icon: LayoutDashboard }); // Using LayoutDashboard for now, can change later
+
 
   links.push({
     href: session?.user?.role === "admin" ? "/admin/questions" : "/questions",

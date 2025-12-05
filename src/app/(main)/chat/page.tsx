@@ -645,11 +645,14 @@ export default function ChatPage() {
         type: messageType,
       };
 
+      console.log("Attempting to send messageData:", messageData);
+
       const { error } = await supabase.from('messages').insert([messageData]);
 
       if (error) {
-        console.error('Error sending message:', error);
+        console.error('Error sending message to Supabase:', error);
       } else {
+        console.log('Message sent successfully to Supabase.');
         setMessage("");
       }
     },

@@ -219,7 +219,7 @@ export default function HelpPage() {
               ))}
             </ul>
           </div>
-          <div className="w-2/3 flex flex-col">
+          <div className="w-2/3 flex flex-col h-full">
             <div className="p-4 border-b border-border">
               <h3 className="text-lg font-bold mb-2">Filter by Admin:</h3>
               <select
@@ -276,7 +276,7 @@ export default function HelpPage() {
                 );
               })}
             </div>
-            <form onSubmit={handleSendMessage} className="bg-card p-4 border-t border-border flex items-center">
+            <form onSubmit={handleSendMessage} className="bg-card p-4 border-t border-border flex items-center mb-20">
           <input
             type="text"
             value={message}

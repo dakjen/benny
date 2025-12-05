@@ -16,8 +16,8 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <main className="flex-1 overflow-y-auto pb-20">{children}</main>
+    <div className="flex flex-col min-h-screen">
+      <main className="flex-1 overflow-y-auto" style={{ height: 'calc(100vh - 80px)' }}>{children}</main>
       <BottomNav />
     </div>
   );

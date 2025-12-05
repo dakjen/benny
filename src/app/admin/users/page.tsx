@@ -132,7 +132,7 @@ export default function AdminUsersPage() {
             value={newPlayerName}
             onChange={(e) => setNewPlayerName(e.target.value)}
             placeholder="Player Name"
-            className="w-full bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full bg-input text-[#476c2e] border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
             required
           />
           <select
@@ -141,7 +141,7 @@ export default function AdminUsersPage() {
               setNewPlayerGameId(Number(e.target.value));
               setNewPlayerTeamId(null); // Reset team when game changes
             }}
-            className="w-full bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full bg-input text-[#476c2e] border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
             required
           >
             <option value="" disabled>Select a Game</option>
@@ -154,7 +154,7 @@ export default function AdminUsersPage() {
           <select
             value={newPlayerTeamId || ""}
             onChange={(e) => setNewPlayerTeamId(Number(e.target.value))}
-            className="w-full bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full bg-input text-[#476c2e] border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
             required
             disabled={!newPlayerGameId}
           >
@@ -191,7 +191,7 @@ export default function AdminUsersPage() {
                 <select
                   value={user.role}
                   onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                  className="bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="bg-input text-[#476c2e] border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>

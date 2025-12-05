@@ -155,7 +155,12 @@ export const submissions = pgTable("submissions", {
   questionId: integer("question_id")
     .notNull()
     .references(() => questions.id, { onDelete: "cascade" }),
-  answerText: text("answer_text").notNull(),
+  answerText: text("answer_text"),
+  submission_type: text("submission_type", {
+    enum: ["photo", "text", "video"],
+  }).notNull(),
+  photo_url: text("photo_url"),
+  video_url: text("video_url"),
   status: text("status", { enum: ["pending", "graded"] }).notNull().default("pending"),
   score: integer("score"), // Nullable, set after grading
   submittedAt: timestamp("submitted_at", { withTimezone: true })

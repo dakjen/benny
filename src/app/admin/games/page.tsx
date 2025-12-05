@@ -207,7 +207,7 @@ export default function AdminGamesPage() {
             value={newGameName}
             onChange={(e) => setNewGameName(e.target.value)}
             placeholder="Game Name"
-            className="w-full bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full bg-input text-[#476c2e] border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
             required
           />
           <input
@@ -216,7 +216,7 @@ export default function AdminGamesPage() {
             onChange={(e) => setNewGameAccessCode(e.target.value)}
             placeholder="4-Digit Access Code"
             maxLength={4}
-            className="w-full bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full bg-input text-[#476c2e] border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <button
             type="submit"
@@ -236,7 +236,7 @@ export default function AdminGamesPage() {
               setSelectedGameId(Number(e.target.value));
               setNewTeamName(""); // Clear team name when game changes
             }}
-            className="w-full bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full bg-input text-[#476c2e] border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
             required
           >
             <option value="" disabled>Select a Game</option>
@@ -251,7 +251,7 @@ export default function AdminGamesPage() {
             value={newTeamName}
             onChange={(e) => setNewTeamName(e.target.value)}
             placeholder="Team Name"
-            className="w-full bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full bg-input text-[#476c2e] border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
             required
           />
           <button
@@ -273,7 +273,7 @@ export default function AdminGamesPage() {
                   type="text"
                   value={editedGameName}
                   onChange={(e) => setEditedGameName(e.target.value)}
-                  className="w-full bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full bg-input text-[#476c2e] border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
                 />
                 <input
                   type="text"
@@ -281,7 +281,7 @@ export default function AdminGamesPage() {
                   onChange={(e) => setEditedGameAccessCode(e.target.value)}
                   placeholder="Access Code (optional)"
                   maxLength={4}
-                  className="w-full bg-input text-card-foreground border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full bg-input text-[#476c2e] border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
                 />
                 <div className="flex space-x-2">
                   <button
@@ -322,7 +322,7 @@ export default function AdminGamesPage() {
                           type="text"
                           value={editedTeamName}
                           onChange={(e) => setEditedTeamName(e.target.value)}
-                          className="flex-1 bg-input text-card-foreground border border-border rounded-lg py-1 px-2 focus:outline-none focus:ring-2 focus:ring-ring"
+                          className="flex-1 bg-input text-[#476c2e] border border-border rounded-lg py-1 px-2 focus:outline-none focus:ring-2 focus:ring-ring"
                         />
                         <button
                           onClick={() => handleSaveTeam(team.id)}

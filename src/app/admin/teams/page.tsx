@@ -98,7 +98,7 @@ export default function AdminTeamsPage() {
           <select
             value={selectedGameId || ""}
             onChange={(e) => setSelectedGameId(Number(e.target.value))}
-            className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring mb-8"
+            className="w-full bg-input text-[#476c2e] border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring mb-8"
           >
             <option value="" disabled>Select a Game</option>
             {games.map((game) => (
@@ -118,7 +118,7 @@ export default function AdminTeamsPage() {
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   placeholder="Team Name"
-                  className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full bg-input text-[#476c2e] border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
                   required
                 />
                 <button

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 type Question = {
   id: number;
@@ -35,6 +36,7 @@ export default function AdminQuestionsPage() {
   const [expectedAnswer, setExpectedAnswer] = useState("");
   const [points, setPoints] = useState<number>(0); // New state for points
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<number[]>([]);
 
   // State for managing categories
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -208,6 +210,23 @@ export default function AdminQuestionsPage() {
     return cat ? cat.name : "N/A";
   };
 
+  const toggleCategory = (categoryId: number) => {
+    setExpandedCategories((prev) =>
+      prev.includes(categoryId)
+        ? prev.filter((id) => id !== categoryId)
+        : [...prev, categoryId]
+    );
+  };
+
+  const groupedQuestions = questions.reduce((acc, q) => {
+    const categoryId = q.categoryId || 0;
+    if (!acc[categoryId]) {
+      acc[categoryId] = [];
+    }
+    acc[categoryId].push(q);
+    return acc;
+  }, {} as Record<number, Question[]>);
+
   return (
     <div className="p-4">
       <header className="bg-background p-4 text-center z-10 shadow-md">
@@ -223,7 +242,7 @@ export default function AdminQuestionsPage() {
             const newGameId = value === "" ? null : Number(value);
             setSelectedGameId(newGameId);
           }}
-          className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring mb-8"
+          className="w-full bg-input text-black border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring mb-8"
         >
           <option value="" disabled>Select a Game</option>
           {games.map((game) => (
@@ -234,10 +253,6 @@ export default function AdminQuestionsPage() {
         </select>
       </div>
 
-      {selectedGameId === null && (
-        <p className="text-center text-red-500 text-2xl font-bold mt-8">NO GAME SELECTED</p>
-      )}
-
       {/* Category Management */}
       <div className="mt-8 max-w-lg mx-auto">
         <h2 className="text-xl font-bold mb-4">Manage Categories</h2>
@@ -247,7 +262,7 @@ export default function AdminQuestionsPage() {
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
             placeholder="Category Name"
-            className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full bg-input text-black border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
             required
           />
           <div className="flex items-center space-x-2">
@@ -258,14 +273,14 @@ export default function AdminQuestionsPage() {
               onChange={(e) => setNewCategoryIsSequential(e.target.checked)}
               className="form-checkbox h-5 w-5 text-primary rounded"
             />
-            <label htmlFor="isSequential" className="text-card-foreground">Sequential Category</label>
+            <label htmlFor="isSequential" className="text-black">Sequential Category</label>
           </div>
           <input
             type="number"
             value={newCategoryOrder}
             onChange={(e) => setNewCategoryOrder(Number(e.target.value))}
             placeholder="Order"
-            className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full bg-input text-black border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
             required
           />
           <button
@@ -320,13 +335,13 @@ export default function AdminQuestionsPage() {
                 value={questionText}
                 onChange={(e) => setQuestionText(e.target.value)}
                 placeholder="Question Text"
-                className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full bg-input text-black border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
                 required
               />
               <select
                 value={selectedCategoryId || ""}
                 onChange={(e) => setSelectedCategoryId(Number(e.target.value))}
-                className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full bg-input text-black border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="">No Category</option>
                 {categories.map((cat) => (
@@ -340,14 +355,14 @@ export default function AdminQuestionsPage() {
                 value={expectedAnswer}
                 onChange={(e) => setExpectedAnswer(e.target.value)}
                 placeholder="Expected Answer (optional)"
-                className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full bg-input text-black border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
               />
               <input
                 type="number"
                 value={points}
                 onChange={(e) => setPoints(Number(e.target.value))}
                 placeholder="Points"
-                className="w-full bg-input text-card-foreground border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full bg-input text-black border border-border rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
                 required
               />
               <button
@@ -376,20 +391,37 @@ export default function AdminQuestionsPage() {
 
           <div className="mt-8 max-w-lg mx-auto">
             <h2 className="text-xl font-bold mb-4">Existing Questions</h2>
-            <ul className="space-y-4">
-              {questions.map((q) => (
-                <li key={q.id} className="p-4 bg-card rounded-lg shadow-md flex justify-between items-center">
-                  <div>
-                    <p className="font-bold">{q.questionText}</p>
-                    <p className="text-sm text-gray-400">Category: {getCategoryName(q.categoryId)} | Points: {q.points}</p>
-                  </div>
-                  <div className="space-x-2">
-                    <button onClick={() => handleEditQuestion(q)} className="text-blue-500 hover:text-blue-700">Edit</button>
-                    <button onClick={() => handleDeleteQuestion(q.id)} className="text-red-500 hover:text-red-700">Delete</button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {Object.entries(groupedQuestions).map(([categoryId, questions]) => (
+              <div key={categoryId} className="bg-secondary rounded-lg shadow-md mb-4">
+                <button
+                  className="w-full flex justify-between items-center p-4 font-bold text-lg"
+                  onClick={() => toggleCategory(Number(categoryId))}
+                >
+                  {getCategoryName(Number(categoryId))}
+                  {expandedCategories.includes(Number(categoryId)) ? (
+                    <ChevronUp className="h-5 w-5" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5" />
+                  )}
+                </button>
+                {expandedCategories.includes(Number(categoryId)) && (
+                  <ul className="p-4 border-t border-border space-y-2">
+                    {questions.map((q) => (
+                      <li key={q.id} className="p-4 bg-card rounded-lg shadow-md flex justify-between items-center">
+                        <div>
+                          <p className="font-bold">{q.questionText}</p>
+                          <p className="text-sm text-gray-400">Points: {q.points}</p>
+                        </div>
+                        <div className="space-x-2">
+                          <button onClick={() => handleEditQuestion(q)} className="text-blue-500 hover:text-blue-700">Edit</button>
+                          <button onClick={() => handleDeleteQuestion(q.id)} className="text-red-500 hover:text-red-700">Delete</button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
           </div>
         </>
       )}

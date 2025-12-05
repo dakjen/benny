@@ -7,13 +7,12 @@ import { supabase } from "@/lib/supabase"; // Import Supabase client
 
 type Message = {
   id: number;
-  sender_id: string; // Matches database column name
-  sender_name: string; // Matches database column name
-  message_text: string; // Matches database column name
-  team_id: number | null; // Matches database column name
-  game_id: number; // Matches database column name
+  sender: string;
+  message: string;
+  teamId: number | null;
+  gameId: number;
   type: "team" | "game";
-  created_at: string; // Matches database column name
+  createdAt: string;
 };
 
 type Player = {
@@ -142,26 +141,38 @@ export default function ChatPage() {
     const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
 
     let channelName = 'chat_messages';
-    let filter: { [key: string]: string | number | null } = {};
+    let filterString = '';
 
     if (!isAdminOrJudge) {
       if (localGameId) {
         channelName = `chat_messages_game_${localGameId}`;
-        filter = { game_id: localGameId };
+        filterString = `gameId=eq.${localGameId}`;
         if (activeTab === "team" && localTeamId) {
-          filter = { ...filter, team_id: localTeamId };
+          filterString += `&teamId=eq.${localTeamId}`;
         } else if (activeTab === "game") {
-          filter = { ...filter, team_id: null }; // Explicitly filter for game chat (team_id is null)
+          filterString += `&teamId=is.null`;
         }
       } else {
         // If no localGameId for a player, don't subscribe
         return;
       }
+    } else { // Admin/Judge
+      if (selectedAdminGameId) {
+        channelName = `chat_messages_admin_game_${selectedAdminGameId}`;
+        filterString = `gameId=eq.${selectedAdminGameId}`;
+        if (activeTab === "team" && selectedTeamForAdminChat) {
+          filterString += `&teamId=eq.${selectedTeamForAdminChat.id}`;
+        } else if (activeTab === "game") {
+          filterString += `&teamId=is.null`;
+        }
+      } else {
+        return; // No game selected for admin, no subscription
+      }
     }
 
     const channel = supabase
       .channel(channelName)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `game_id=eq.${filter.game_id}${filter.team_id !== undefined ? `&team_id=${filter.team_id === null ? 'is.null' : `eq.${filter.team_id}`}` : ''}` }, (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: filterString }, (payload) => {
         console.log('New message received:', payload.new);
         const newMessage = payload.new as Message;
         setChatMessages((prevMessages) => [...prevMessages, newMessage]);
@@ -181,23 +192,31 @@ export default function ChatPage() {
     // Fetch initial messages
     const fetchInitialMessages = async () => {
       let query = supabase
-        .from('messages')
+        .from('direct_messages')
         .select('*')
-        .order('created_at', { ascending: true });
+        .order('createdAt', { ascending: true });
 
       if (!isAdminOrJudge) {
-        // For players, filter by their game ID
         if (localGameId) {
-          query = query.eq('game_id', localGameId);
-          // If activeTab is 'team', also filter by team_id
+          query = query.eq('gameId', localGameId);
           if (activeTab === "team" && localTeamId) {
-            query = query.eq('team_id', localTeamId);
+            query = query.eq('teamId', localTeamId);
           } else if (activeTab === "game") {
-            // For game chat, team_id should be null
-            query = query.is('team_id', null);
+            query = query.is('teamId', null);
           }
         } else {
-          // If no localGameId, no messages should be fetched for players
+          setChatMessages([]);
+          return;
+        }
+      } else { // Admin/Judge
+        if (selectedAdminGameId) {
+          query = query.eq('gameId', selectedAdminGameId);
+          if (activeTab === "team" && selectedTeamForAdminChat) {
+            query = query.eq('teamId', selectedTeamForAdminChat.id);
+          } else if (activeTab === "game") {
+            query = query.is('teamId', null);
+          }
+        } else {
           setChatMessages([]);
           return;
         }
@@ -217,181 +236,93 @@ export default function ChatPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [localGameId, localTeamId, activeTab, session]);
-
-    
+  }, [localGameId, localTeamId, activeTab, session, selectedAdminGameId, selectedTeamForAdminChat]);
 
             // New useEffect for assigning unique icons
 
-    
-
             useEffect(() => {
-
-    
 
               const newAssignedIcons = { ...assignedIcons };
 
-    
-
               let changed = false;
 
-    
-
           
-
-    
 
               // Collect all sender IDs from chatMessages
 
-    
-
-              const senderIdsInChat = new Set(chatMessages.map(msg => msg.sender_id));
-
-    
+              const senderIdsInChat = new Set(chatMessages.map(msg => msg.sender.toString()));
 
           
-
-    
 
               // Iterate through each sender in the chat
 
-    
-
               senderIdsInChat.forEach(senderId => {
-
-    
 
                 if (!newAssignedIcons[senderId]) { // Only assign if not already assigned
 
-    
-
                   const isAdminSender = adminUsers.some(admin => String(admin.id) === String(senderId));
 
-    
-
           
-
-    
 
                   if (isAdminSender) {
 
-    
-
                     newAssignedIcons[senderId] = adminIcon;
-
-    
 
                   } else {
 
-    
-
                     // Find an unused regular icon
-
-    
 
                     const currentlyUsedRegularIcons = new Set(
 
-    
-
                       regularIcons.filter(icon => Object.values(newAssignedIcons).includes(icon))
-
-    
 
                     );
 
-    
-
                     const availableIcons = regularIcons.filter(icon => !currentlyUsedRegularIcons.has(icon));
 
-    
-
           
-
-    
 
                     let iconToAssign;
 
-    
-
                     if (availableIcons.length > 0) {
-
-    
 
                       // Assign a random available unique icon
 
-    
-
                       const randomIndex = Math.floor(Math.random() * availableIcons.length);
-
-    
 
                       iconToAssign = availableIcons[randomIndex];
 
-    
-
                     } else {
-
-    
 
                       // Fallback: all regular icons are used, cycle through them based on hash
 
-    
-
                       const hash = senderId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-
-    
 
                       const index = hash % regularIcons.length;
 
-    
-
                       iconToAssign = regularIcons[index];
-
-    
 
                     }
 
-    
-
                     newAssignedIcons[senderId] = iconToAssign;
-
-    
 
                   }
 
-    
-
                   changed = true;
-
-    
 
                 }
 
-    
-
               });
-
-    
 
           
 
-    
-
               if (changed) {
-
-    
 
                 setAssignedIcons(newAssignedIcons);
 
-    
-
               }
 
-    
-
             }, [chatMessages, adminUsers]); // Dependencies
-
-    
 
     
 
@@ -399,11 +330,7 @@ export default function ChatPage() {
 
     
 
-    
-
                 const fetchData = async () => {
-
-    
 
     
 
@@ -411,11 +338,7 @@ export default function ChatPage() {
 
     
 
-    
-
                     const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
-
-    
 
     
 
@@ -423,11 +346,7 @@ export default function ChatPage() {
 
     
 
-    
-
             
-
-    
 
     
 
@@ -435,11 +354,7 @@ export default function ChatPage() {
 
     
 
-    
-
                     const teamsApiUrl = isAdminOrJudge ? `/api/admin/teams?gameId=${currentActiveGameId}` : `/api/public/teams?gameId=${currentActiveGameId}`;
-
-    
 
     
 
@@ -447,11 +362,7 @@ export default function ChatPage() {
 
     
 
-    
-
             
-
-    
 
     
 
@@ -459,11 +370,7 @@ export default function ChatPage() {
 
     
 
-    
-
                     if (currentActiveGameId) {
-
-    
 
     
 
@@ -471,17 +378,11 @@ export default function ChatPage() {
 
     
 
-    
-
                       if (!playersResponse.ok) {
 
     
 
-    
-
                         const errorText = await playersResponse.text();
-
-    
 
     
 
@@ -489,17 +390,11 @@ export default function ChatPage() {
 
     
 
-    
-
                         throw new Error(`Failed to fetch players: ${playersResponse.statusText}`);
 
     
 
-    
-
                       }
-
-    
 
     
 
@@ -507,11 +402,7 @@ export default function ChatPage() {
 
     
 
-    
-
                       if (!playersContentType || !playersContentType.includes('application/json')) {
-
-    
 
     
 
@@ -519,11 +410,7 @@ export default function ChatPage() {
 
     
 
-    
-
                         console.error("Players API did not return JSON:", errorText);
-
-    
 
     
 
@@ -531,11 +418,7 @@ export default function ChatPage() {
 
     
 
-    
-
                       }
-
-    
 
     
 
@@ -543,11 +426,7 @@ export default function ChatPage() {
 
     
 
-    
-
                       console.log("Fetched players data:", playersData);
-
-    
 
     
 
@@ -555,11 +434,7 @@ export default function ChatPage() {
 
     
 
-    
-
             
-
-    
 
     
 
@@ -567,17 +442,11 @@ export default function ChatPage() {
 
     
 
-    
-
                       if (!teamsResponse.ok) {
 
     
 
-    
-
                         const errorText = await teamsResponse.text();
-
-    
 
     
 
@@ -585,17 +454,11 @@ export default function ChatPage() {
 
     
 
-    
-
                         throw new Error(`Failed to fetch teams: ${teamsResponse.statusText}`);
 
     
 
-    
-
                       }
-
-    
 
     
 
@@ -603,11 +466,7 @@ export default function ChatPage() {
 
     
 
-    
-
                       if (!teamsContentType || !teamsContentType.includes('application/json')) {
-
-    
 
     
 
@@ -615,11 +474,7 @@ export default function ChatPage() {
 
     
 
-    
-
                         console.error("Teams API did not return JSON:", errorText);
-
-    
 
     
 
@@ -627,11 +482,7 @@ export default function ChatPage() {
 
     
 
-    
-
                       }
-
-    
 
     
 
@@ -639,11 +490,7 @@ export default function ChatPage() {
 
     
 
-    
-
                       console.log("Fetched teams data:", teamsData);
-
-    
 
     
 
@@ -651,11 +498,7 @@ export default function ChatPage() {
 
     
 
-    
-
                     } else {
-
-    
 
     
 
@@ -663,11 +506,7 @@ export default function ChatPage() {
 
     
 
-    
-
                       setAllPlayers([]);
-
-    
 
     
 
@@ -675,11 +514,7 @@ export default function ChatPage() {
 
     
 
-    
-
                     }
-
-    
 
     
 
@@ -687,11 +522,7 @@ export default function ChatPage() {
 
     
 
-    
-
                     // Always fetch all games for admin/judge
-
-    
 
     
 
@@ -699,17 +530,11 @@ export default function ChatPage() {
 
     
 
-    
-
                     if (!gamesResponse.ok) {
 
     
 
-    
-
                       const errorText = await gamesResponse.text();
-
-    
 
     
 
@@ -717,17 +542,11 @@ export default function ChatPage() {
 
     
 
-    
-
                       throw new Error(`Failed to fetch games: ${gamesResponse.statusText}`);
 
     
 
-    
-
                     }
-
-    
 
     
 
@@ -735,11 +554,7 @@ export default function ChatPage() {
 
     
 
-    
-
                     if (!gamesContentType || !gamesContentType.includes('application/json')) {
-
-    
 
     
 
@@ -747,11 +562,7 @@ export default function ChatPage() {
 
     
 
-    
-
                       console.error("Games API did not return JSON:", errorText);
-
-    
 
     
 
@@ -759,11 +570,7 @@ export default function ChatPage() {
 
     
 
-    
-
                     }
-
-    
 
     
 
@@ -771,11 +578,7 @@ export default function ChatPage() {
 
     
 
-    
-
                     console.log("Fetched games data:", gamesData);
-
-    
 
     
 
@@ -783,11 +586,7 @@ export default function ChatPage() {
 
     
 
-    
-
                     console.log("allGames after fetch:", gamesData);
-
-    
 
     
 
@@ -795,11 +594,7 @@ export default function ChatPage() {
 
     
 
-    
-
                     console.error("Error fetching chat data:", error);
-
-    
 
     
 
@@ -807,17 +602,11 @@ export default function ChatPage() {
 
     
 
-    
-
                 };
 
     
 
-    
-
                 fetchData();
-
-    
 
     
 
@@ -853,16 +642,14 @@ export default function ChatPage() {
       }
 
       const messageData = {
-        sender_id: senderId, // Send sender ID to match database column name
-        sender_name: senderName, // Send sender name for display
-        message_text: message, // Message content
-        team_id: currentTeamId,
-        game_id: currentGameId,
+        sender: String(senderId),
+        message: message,
+        teamId: currentTeamId,
+        gameId: currentGameId,
         type: messageType,
-        created_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase.from('messages').insert([messageData]);
+      const { error } = await supabase.from('direct_messages').insert([messageData]);
 
       if (error) {
         console.error('Error sending message:', error);
@@ -907,7 +694,7 @@ export default function ChatPage() {
         <header className="bg-background p-4 text-center z-10 shadow-md">
           <h1 className="text-2xl font-permanent-marker">Chat (Admin/Judge View)</h1>
         </header>
-        <div className="p-4">
+        <div className="p-2 sm:p-4">
           <h2 className="text-xl font-bold mb-4">Select Game</h2>
           <div className="flex space-x-4 mb-4">
             <select
@@ -984,14 +771,14 @@ export default function ChatPage() {
                   <div className="flex-1 overflow-y-auto p-4">
                     <div className="space-y-4">
                       {chatMessages.map((msg) => {
-                        const isAdminSender = isAdmin(msg.sender_id);
-                        console.log("Message sender_id:", msg.sender_id, "isAdminSender:", isAdminSender);
-                        const Icon = assignedIcons[msg.sender_id] || regularIcons[0]; // Fallback
+                        const isAdminSender = isAdmin(msg.sender);
+                        console.log("Message sender:", msg.sender, "isAdminSender:", isAdminSender);
+                        const Icon = assignedIcons[msg.sender] || regularIcons[0]; // Fallback
                         return (
                           <div
                             key={msg.id}
                             className={`flex items-end space-x-3 ${
-                              msg.sender_id === session?.user?.id ? "flex-row-reverse" : ""
+                              msg.sender === session?.user?.id ? "flex-row-reverse" : ""
                             }`}
                           >
                             <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0 flex items-center justify-center">
@@ -1001,13 +788,13 @@ export default function ChatPage() {
                               className={`p-3 rounded-2xl shadow ${
                                 isAdminSender
                                   ? "bg-black text-white"
-                                  : msg.sender_id === session?.user?.id
+                                  : msg.sender === session?.user?.id
                                   ? "bg-primary rounded-br-none"
                                   : "bg-secondary rounded-bl-none"
                               }`}
                             >
-                              <p className="font-bold text-sm">{msg.sender_name}</p>
-                              <p>{msg.message_text}</p>
+                              <p className="font-bold text-sm">{msg.senderName}</p>
+                              <p>{msg.message}</p>
                             </div>
                           </div>
                         );
@@ -1021,7 +808,7 @@ export default function ChatPage() {
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       placeholder="Type a message..."
-                      className="flex-1 bg-input text-gray-900 border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="flex-1 bg-input text-card-foreground border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                     <button
                       type="submit"
@@ -1083,13 +870,13 @@ export default function ChatPage() {
           )}
           <div className="space-y-4">
             {chatMessages.map((msg) => {
-              const isAdminSender = isAdmin(msg.sender_id);
-              const Icon = assignedIcons[msg.sender_id] || regularIcons[0]; // Fallback
+              const isAdminSender = isAdmin(msg.sender);
+              const Icon = assignedIcons[msg.sender] || regularIcons[0]; // Fallback
               return (
                 <div
                   key={msg.id}
                   className={`flex items-end space-x-3 ${
-                    msg.sender_id === String(localPlayerId) ? "flex-row-reverse" : ""
+                    msg.sender === String(localPlayerId) ? "flex-row-reverse" : ""
                   }`}
                 >
                   <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0 flex items-center justify-center">
@@ -1099,13 +886,13 @@ export default function ChatPage() {
                     className={`p-3 rounded-2xl shadow ${
                       isAdminSender
                         ? "bg-black text-white"
-                        : msg.sender_id === String(localPlayerId)
+                        : msg.sender === String(localPlayerId)
                         ? "bg-primary rounded-br-none text-white"
                         : "bg-secondary rounded-bl-none text-white"
                     }`}
                   >
-                    <p className="font-bold text-sm">{msg.sender_name}</p>
-                    <p>{msg.message_text}</p>
+                    <p className="font-bold text-sm">{msg.senderName}</p>
+                    <p>{msg.message}</p>
                   </div>
                 </div>
               );

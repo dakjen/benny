@@ -1,94 +1,148 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getServerSession } from "next-auth/next";
-import authOptions from "@/auth";
+import Image from "next/image";
+import { GameScore } from "@/components/GameScore";
 
-export default async function AdminDashboardPage() {
-  const session = await getServerSession(authOptions);
-  const isAdmin = session?.user?.role === "admin";
-  const isJudge = session?.user?.role === "judge";
+type Submission = {
+  submission: {
+    id: number;
+    answerText: string | null;
+    photo_url: string | null;
+    status: string;
+  };
+  player: {
+    name: string;
+  };
+  question: {
+    questionText: string;
+  };
+  team: {
+    name: string;
+  };
+};
 
-  let defaultGameId: number | null = null;
-  try {
-    const gamesResponse = await fetch(`/api/admin/games`);
-    if (gamesResponse.ok) {
-      const gamesData = await gamesResponse.json();
-      if (gamesData.length === 1) {
-        defaultGameId = gamesData[0].id;
-      }
-    } else {
-      console.error("Failed to fetch games for default selection:", gamesResponse.status, gamesResponse.statusText);
+type Game = {
+  id: number;
+  name: string;
+};
+
+export default function AdminDashboardPage() {
+  const [games, setGames] = useState<Game[]>([]);
+  const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [pendingSubmissionsCount, setPendingSubmissionsCount] = useState(0);
+  const [totalPointsGranted, setTotalPointsGranted] = useState(0);
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [showGameScore, setShowGameScore] = useState(false);
+
+  useEffect(() => {
+    if (selectedGameId) {
+      fetch(`/api/admin/questions?gameId=${selectedGameId}`)
+        .then((res) => res.json())
+        .then((data) => setQuestions(data));
     }
-  } catch (error) {
-    console.error("Error fetching games for default selection:", error);
-  }
+  }, [selectedGameId]);
 
-  let pendingSubmissionsCount = 0;
-  if ((isAdmin || isJudge) && defaultGameId) { // Only fetch if a default game is selected
-    try {
-      const response = await fetch(`/api/admin/submissions/count?gameId=${defaultGameId}`);
-      if (response.ok) {
-        const data = await response.json();
-        pendingSubmissionsCount = data.count;
-      } else {
-        console.error("Failed to fetch pending submissions count:", response.status, response.statusText);
-      }
-    } catch (error) {
-      console.error("Error fetching pending submissions count:", error);
-    }
-  }
+  useEffect(() => {
+    fetch("/api/admin/games")
+      .then((res) => res.json())
+      .then((data) => {
+        setGames(data);
+        if (data.length > 0) {
+          setSelectedGameId(data[0].id);
+        }
+      });
+  }, []);
 
-  let totalPointsGranted = 0;
-  if ((isAdmin || isJudge) && defaultGameId) { // Only fetch if a default game is selected
-    try {
-      const response = await fetch(`/api/admin/points/total?gameId=${defaultGameId}`);
-      if (response.ok) {
-        const data = await response.json();
-        totalPointsGranted = data.totalPoints;
-      } else {
-        console.error("Failed to fetch total points granted:", response.status, response.statusText);
-      }
-    } catch (error) {
-      console.error("Error fetching total points granted:", error);
+  useEffect(() => {
+    if (selectedGameId) {
+      fetch(`/api/admin/submissions?gameId=${selectedGameId}`)
+        .then((res) => res.json())
+        .then((data) => setSubmissions(data));
+
+      fetch(`/api/admin/submissions/count?gameId=${selectedGameId}`)
+        .then((res) => res.json())
+        .then((data) => setPendingSubmissionsCount(data.count));
+
+      fetch(`/api/admin/points/total?gameId=${selectedGameId}`)
+        .then((res) => res.json())
+        .then((data) => setTotalPointsGranted(data.totalPoints));
     }
-  }
+  }, [selectedGameId]);
 
   return (
     <div className="flex min-h-screen flex-col items-center p-24">
       <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
+      <div className="w-full max-w-6xl mb-8">
+        <label htmlFor="game-select" className="block text-lg font-medium mb-2">
+          Select a game:
+        </label>
+        <select
+          id="game-select"
+          className="w-full bg-input text-[#476c2e] border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"
+          value={selectedGameId || ""}
+          onChange={(e) => setSelectedGameId(Number(e.target.value))}
+        >
+          {games.map((game) => (
+            <option key={game.id} value={game.id}>
+              {game.name}
+            </option>
+          ))}
+        </select>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full max-w-6xl">
         <div className="p-6 rounded-lg shadow-md" style={{ backgroundColor: "#7fab61" }}>
           <h2 className="text-2xl font-bold mb-4">Submissions</h2>
-          {(isAdmin || isJudge) && (
-            <p className="text-lg">Pending for grading: {pendingSubmissionsCount}</p>
-          )}
-          {/* Add content for Submissions here */}
+          <p className="text-lg">Pending for grading: {pendingSubmissionsCount}</p>
+          <Link href={selectedGameId ? `/admin/submissions?gameId=${selectedGameId}` : "/admin/submissions"}>
+            <p className="text-primary hover:underline">Grade Submissions</p>
+          </Link>
         </div>
         <div className="p-6 rounded-lg shadow-md" style={{ backgroundColor: "#7fab61" }}>
-          <h2 className="text-2xl font-bold mb-4">Games</h2> {/* Renamed to Games */}
-          {isAdmin && (
-            <>
-              <Link href={defaultGameId ? `/admin/games?gameId=${defaultGameId}` : "/admin/games"}>
-                <p className="text-primary hover:underline">Manage Games & Teams</p>
-              </Link>
-            </>
-          )}
+          <h2 className="text-2xl font-bold mb-4">Games</h2>
+          <Link href={selectedGameId ? `/admin/games?gameId=${selectedGameId}` : "/admin/games"}>
+            <p className="text-primary hover:underline">Manage Games & Teams</p>
+          </Link>
         </div>
         <div className="p-6 rounded-lg shadow-md" style={{ backgroundColor: "#7fab61" }}>
-          <h2 className="text-2xl font-bold mb-4">Users</h2> {/* New Users container */}
-          {isAdmin && (
-            <Link href="/admin/users">
-              <p className="text-primary hover:underline">Manage Users</p>
-            </Link>
-          )}
+          <h2 className="text-2xl font-bold mb-4">Users</h2>
+          <Link href="/admin/users">
+            <p className="text-primary hover:underline">Manage Users</p>
+          </Link>
         </div>
         <div className="p-6 rounded-lg shadow-md" style={{ backgroundColor: "#7fab61" }}>
           <h2 className="text-2xl font-bold mb-4">Points</h2>
-          {(isAdmin || isJudge) && (
-            <p className="text-lg">Total granted: {totalPointsGranted}</p>
-          )}
-          {/* Add content for Points here */}
+          <p className="text-lg">Total granted: {totalPointsGranted}</p>
+        </div>
+        <div className="p-6 rounded-lg shadow-md" style={{ backgroundColor: "#7fab61" }}>
+          <h2 className="text-2xl font-bold mb-4">Game Score</h2>
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+            onClick={() => setShowGameScore(true)}
+          >
+            View Scores
+          </button>
+        </div>
+        <div className="p-6 rounded-lg shadow-md" style={{ backgroundColor: "#7fab61" }}>
+          <h2 className="text-2xl font-bold mb-4">Game Over</h2>
+          <button
+            className="bg-red-500 text-white px-4 py-2 rounded"
+            onClick={() => setShowGameScore(true)}
+          >
+            End Game & View Final Scores
+          </button>
         </div>
       </div>
+      {showGameScore && selectedGameId && (
+        <GameScore
+          gameId={selectedGameId}
+          onClose={() => setShowGameScore(false)}
+        />
+      )}
     </div>
   );
 }

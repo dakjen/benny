@@ -7,9 +7,9 @@ import { supabase } from "@/lib/supabase"; // Import Supabase client
 
 type Message = {
   id: number;
-  sender: string;
-  senderName: string; // Added senderName
-  message: string;
+  sender: string | null | undefined;
+  sender_name: string | null | undefined; // Updated to snake_case
+  message_text: string | null | undefined;   // Updated to snake_case
   teamId: number | null;
   gameId: number;
   type: "team" | "game";
@@ -95,22 +95,24 @@ export default function ChatPage() {
   const [selectedTeamForAdminChat, setSelectedTeamForAdminChat] = useState<Team | null>(null);
 
   useEffect(() => {
-    const fetchAdminUsers = async () => {
-      try {
-        const response = await fetch("/api/admin/users");
-        if (response.ok) {
-          const usersData = await response.json();
-          const admins = usersData.filter((user: any) => user.role === "admin");
-          setAdminUsers(admins);
-        } else {
-          console.error("Failed to fetch admin users");
+    if (session?.user?.role === "admin" || session?.user?.role === "judge") {
+      const fetchAdminUsers = async () => {
+        try {
+          const response = await fetch("/api/admin/users");
+          if (response.ok) {
+            const usersData = await response.json();
+            const admins = usersData.filter((user: any) => user.role === "admin");
+            setAdminUsers(admins);
+          } else {
+            console.error("Failed to fetch admin users:", response.status, response.statusText);
+          }
+        } catch (error) {
+          console.error("Error fetching admin users:", error);
         }
-      } catch (error) {
-        console.error("Error fetching admin users:", error);
-      }
-    };
-    fetchAdminUsers();
-  }, []);
+      };
+      fetchAdminUsers();
+    }
+  }, [session]);
 
 
   useEffect(() => {
@@ -147,8 +149,7 @@ export default function ChatPage() {
     if (!isAdminOrJudge) {
       if (localGameId) {
         channelName = `chat_messages_game_${localGameId}`;
-        filterString = `gameId=eq.${localGameId}`;
-        filterString = `gameId=eq.${localGameId}&teamId=is.null`;
+        filterString = `game_id=eq.${localGameId}&team_id=is.null`;
       } else {
         // If no localGameId for a player, don't subscribe
         return;
@@ -156,11 +157,11 @@ export default function ChatPage() {
     } else { // Admin/Judge
       if (selectedAdminGameId) {
         channelName = `chat_messages_admin_game_${selectedAdminGameId}`;
-        filterString = `gameId=eq.${selectedAdminGameId}`;
+        filterString = `game_id=eq.${selectedAdminGameId}`;
         if (activeTab === "team" && selectedTeamForAdminChat) {
-          filterString += `&teamId=eq.${selectedTeamForAdminChat.id}`;
+          filterString += `&team_id=eq.${selectedTeamForAdminChat.id}`;
         } else if (activeTab === "game") {
-          filterString += `&teamId=is.null`;
+          filterString += `&team_id=is.null`;
         }
       } else {
         return; // No game selected for admin, no subscription
@@ -170,7 +171,6 @@ export default function ChatPage() {
     const channel = supabase
       .channel(channelName)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: filterString }, (payload) => {
-        console.log('New message received:', payload.new);
         const newMessage = payload.new as Message;
         setChatMessages((prevMessages) => [...prevMessages, newMessage]);
       })
@@ -191,22 +191,22 @@ export default function ChatPage() {
       let query = supabase
         .from('messages')
         .select('*')
-        .order('createdAt', { ascending: true });
+        .order('created_at', { ascending: true });
 
       if (!isAdminOrJudge) {
         if (localGameId) {
-          query = query.eq('gameId', localGameId).is('teamId', null);
+          query = query.eq('game_id', localGameId).is('team_id', null);
         } else {
           setChatMessages([]);
           return;
         }
       } else { // Admin/Judge
         if (selectedAdminGameId) {
-          query = query.eq('gameId', selectedAdminGameId);
+          query = query.eq('game_id', selectedAdminGameId);
           if (activeTab === "team" && selectedTeamForAdminChat) {
-            query = query.eq('teamId', selectedTeamForAdminChat.id);
+            query = query.eq('team_id', selectedTeamForAdminChat.id);
           } else if (activeTab === "game") {
-            query = query.is('teamId', null);
+            query = query.is('team_id', null);
           }
         } else {
           setChatMessages([]);
@@ -242,13 +242,14 @@ export default function ChatPage() {
 
               // Collect all sender IDs from chatMessages
 
-              const senderIdsInChat = new Set(chatMessages.map(msg => msg.sender.toString()));
+              const senderIdsInChat = new Set(chatMessages.map(msg => msg.sender?.toString()).filter(Boolean));
 
           
 
               // Iterate through each sender in the chat
 
               senderIdsInChat.forEach(senderId => {
+                if (senderId === undefined) return; // Add null check for senderId
 
                 if (!newAssignedIcons[senderId]) { // Only assign if not already assigned
 
@@ -626,6 +627,8 @@ export default function ChatPage() {
         } else if (activeTab === "game") {
           currentTeamId = null;
         }
+      } else { // Player
+        currentTeamId = null; // Players only send to game chat (teamId is null)
       }
 
       if (!senderId || !senderName || !currentGameId) {
@@ -634,11 +637,11 @@ export default function ChatPage() {
       }
 
       const messageData = {
-        sender: String(senderId),
-        senderName: senderName, // Include senderName here
-        message: message,
-        teamId: currentTeamId,
-        gameId: currentGameId,
+        sender_id: String(senderId),
+        sender_name: senderName,
+        message_text: message,
+        team_id: currentTeamId,
+        game_id: currentGameId,
         type: messageType,
       };
 
@@ -671,13 +674,6 @@ export default function ChatPage() {
 
   const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
   const isPlayer = localPlayerId !== null && !isAdminOrJudge;
-
-  console.log("isPlayer:", isPlayer);
-  console.log("localPlayerId:", localPlayerId);
-  console.log("localPlayerName:", localPlayerName);
-  console.log("localTeamId:", localTeamId);
-  console.log("localGameId:", localGameId);
-  console.log("allPlayers in render (player view):", allPlayers);
 
   if (isAdminOrJudge) {
     const filteredTeams = allTeams.filter(team => team.gameId === selectedAdminGameId);
@@ -764,9 +760,9 @@ export default function ChatPage() {
                   <div className="flex-1 overflow-y-auto p-4">
                     <div className="space-y-4">
                       {chatMessages.map((msg) => {
-                        const isAdminSender = isAdmin(msg.sender);
+                        const isAdminSender = msg.sender ? isAdmin(msg.sender) : false;
                         console.log("Message sender:", msg.sender, "isAdminSender:", isAdminSender);
-                        const Icon = assignedIcons[msg.sender] || regularIcons[0]; // Fallback
+                        const Icon = (msg.sender && assignedIcons[msg.sender]) || regularIcons[0]; // Fallback
                         return (
                           <div
                             key={msg.id}
@@ -786,8 +782,8 @@ export default function ChatPage() {
                                   : "bg-secondary rounded-bl-none"
                               }`}
                             >
-                              <p className="font-bold text-sm">{msg.senderName}</p>
-                              <p>{msg.message}</p>
+                              <p className="font-bold text-sm">{msg.sender_name || "Unknown"}</p>
+                              <p>{msg.message_text || ""}</p>
                             </div>
                           </div>
                         );
@@ -849,29 +845,29 @@ export default function ChatPage() {
           )}
           <div className="space-y-4">
             {chatMessages.map((msg) => {
-              const isAdminSender = isAdmin(msg.sender);
-              const Icon = assignedIcons[msg.sender] || regularIcons[0]; // Fallback
+              const isAdminSender = msg.sender ? isAdmin(msg.sender) : false;
+              const Icon = (msg.sender && assignedIcons[msg.sender]) || regularIcons[0]; // Fallback
               return (
                 <div
                   key={msg.id}
                   className={`flex items-end space-x-3 ${
-                    msg.sender === String(localPlayerId) ? "flex-row-reverse" : ""
+                    msg.sender && msg.sender === String(localPlayerId) ? "flex-row-reverse" : ""
                   }`}
                 >
                   <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0 flex items-center justify-center">
-                    <Icon className="w-5 h-5" />
+                    <Icon className="h-5 w-5" />
                   </div>
                   <div
                     className={`p-3 rounded-2xl shadow ${
                       isAdminSender
                         ? "bg-black text-white"
-                        : msg.sender === String(localPlayerId)
+                        : msg.sender && msg.sender === String(localPlayerId)
                         ? "bg-primary rounded-br-none text-white"
                         : "bg-secondary rounded-bl-none text-white"
                     }`}
                   >
-                    <p className="font-bold text-sm">{msg.senderName}</p>
-                    <p>{msg.message}</p>
+                    <p className="font-bold text-sm">{msg.sender_name || "Unknown"}</p>
+                    <p>{msg.message_text || ""}</p>
                   </div>
                 </div>
               );

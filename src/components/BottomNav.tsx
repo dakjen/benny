@@ -9,15 +9,22 @@ export function BottomNav() {
   const pathname = usePathname();
   const { data: session } = useSession(); // Use NextAuth.js useSession hook
 
-  const links = [
-    { href: "/chat", label: "Chat", icon: MessageSquare },
-    {
-      href: session?.user?.role === "admin" ? "/admin/questions" : "/questions",
-      label: "Questions",
-      icon: HelpCircle,
-    },
-    { href: "/help", label: "Help", icon: Info },
-  ];
+  const links = [];
+
+  // Conditionally add Chat link for admins/judges
+  if (session?.user?.role === "admin" || session?.user?.role === "judge") {
+    links.push({ href: "/chat", label: "Chat", icon: MessageSquare });
+  }
+
+  // Add Submissions Summary link for all users
+  links.push({ href: "/admin/submissions/game-summary", label: "Submissions", icon: LayoutDashboard }); // Using LayoutDashboard for now, can change later
+
+  links.push({
+    href: session?.user?.role === "admin" ? "/admin/questions" : "/questions",
+    label: "Questions",
+    icon: HelpCircle,
+  });
+  links.push({ href: "/help", label: "Help", icon: Info });
 
   if (session?.user?.role === "admin") {
     links.unshift({ href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard });

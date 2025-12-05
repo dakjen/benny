@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react"; // Added useRef
 import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic"; // Import dynamic
 import {
@@ -34,6 +34,15 @@ export default function HelpPage() {
   const { data: session } = useSession();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null); // Ref for scrolling
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+    }
+  }, [messages]);
+
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [localPlayerId, setLocalPlayerId] = useState<number | null>(null);
@@ -58,9 +67,14 @@ export default function HelpPage() {
         if (session?.user?.role === "admin" || session?.user?.role === "judge") {
           setSelectedAdminForSending(session.user.id);
         }
+      } else {
+        console.error("Failed to fetch admin users:", response.status, response.statusText);
       }
     };
-    fetchAdminUsers();
+
+    if (session?.user?.role === "admin" || session?.user?.role === "judge") {
+      fetchAdminUsers();
+    }
   }, [session]);
 
   // Fetch players for admin messaging (or for all users to resolve names)
@@ -263,13 +277,13 @@ export default function HelpPage() {
               })}
             </div>
             <form onSubmit={handleSendMessage} className="bg-card p-4 border-t border-border flex items-center">
-              <input
-                type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1 bg-input text-card-foreground border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Type a message..."
+            className="flex-1 min-w-0 bg-input text-gray-900 border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+          />
               <button
                 type="submit"
                 className="ml-4 bg-primary text-primary-foreground rounded-full p-3 hover:bg-primary/90 transition-colors"
@@ -284,8 +298,8 @@ export default function HelpPage() {
   }
 
   return (
-    <div
-      className="relative flex flex-col h-full bg-card text-foreground" // Added relative for pseudo-element positioning
+    <div // Outermost div of HelpPage
+      className="relative h-screen bg-card text-foreground"
       style={{
         backgroundImage: `url('/assets/benfunnyold.png')`,
         backgroundSize: 'cover',
@@ -294,10 +308,10 @@ export default function HelpPage() {
     >
       {/* Overlay for opacity */}
       <div className="absolute inset-0 bg-black opacity-20"></div>
-      <header className="relative bg-background p-4 text-center z-10 shadow-md"> {/* Added relative and z-10 */}
+      <header className="fixed top-0 left-0 right-0 bg-[#7fab61] p-4 text-center z-10 shadow-md h-16"> {/* Header */}
         <h1 className="text-2xl font-permanent-marker">Help Chat</h1>
       </header>
-      <div className="flex-1 overflow-y-auto p-4">
+      <div ref={messagesEndRef} className="absolute top-16 bottom-[80px] left-0 right-0 overflow-y-auto p-4"> {/* Messages */}
         {messages.map((msg) => {
           const senderInfo = getSenderInfo(msg.senderId);
           const IconComponent: React.ElementType = iconMap[senderInfo.icon] || iconMap.User; // Fallback to User icon
@@ -325,21 +339,24 @@ export default function HelpPage() {
           );
         })}
       </div>
-      <form onSubmit={handleSendMessage} className="bg-card p-4 border-t border-border flex items-center">
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type a message..."
-          className="flex-1 bg-input text-card-foreground border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-        <button
-          type="submit"
-          className="ml-4 bg-primary text-primary-foreground rounded-full p-3 hover:bg-primary/90 transition-colors"
-        >
-          <Send className="h-5 w-5" />
-        </button>
-      </form>
+      {localPlayerId ? (
+        <form onSubmit={handleSendMessage} className="fixed bottom-[80px] left-0 right-0 bg-[#7fab61] p-4 border-t border-border flex items-center h-20"> {/* Input Form */}
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Type your message..."
+            className="flex-1 p-2 rounded-lg bg-input border border-border focus:outline-none focus:ring-2 focus:ring-ring min-w-0 text-gray-800"
+          />
+          <button type="submit" className="ml-2 p-2 bg-primary text-primary-foreground rounded-lg">
+            <Send className="h-5 w-5" />
+          </button>
+        </form>
+      ) : (
+        <div className="fixed bottom-[80px] left-0 right-0 bg-[#7fab61] p-4 border-t border-border text-center h-20"> {/* No Player Message */}
+          <p className="text-gray-400">Please join a game to use the help chat.</p>
+        </div>
+      )}
     </div>
   );
 }

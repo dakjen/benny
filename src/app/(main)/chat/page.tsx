@@ -66,8 +66,6 @@ export default function ChatPage() {
 
   const { data: session } = useSession();
 
-  const [activeTab, setActiveTab] = useState<"team" | "game">("game"); // Default to game chat for admin
-
   const [message, setMessage] = useState("");
 
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
@@ -148,11 +146,7 @@ export default function ChatPage() {
       if (localGameId) {
         channelName = `chat_messages_game_${localGameId}`;
         filterString = `gameId=eq.${localGameId}`;
-        if (activeTab === "team" && localTeamId) {
-          filterString += `&teamId=eq.${localTeamId}`;
-        } else if (activeTab === "game") {
-          filterString += `&teamId=is.null`;
-        }
+        filterString = `gameId=eq.${localGameId}&teamId=is.null`;
       } else {
         // If no localGameId for a player, don't subscribe
         return;
@@ -199,12 +193,7 @@ export default function ChatPage() {
 
       if (!isAdminOrJudge) {
         if (localGameId) {
-          query = query.eq('gameId', localGameId);
-          if (activeTab === "team" && localTeamId) {
-            query = query.eq('teamId', localTeamId);
-          } else if (activeTab === "game") {
-            query = query.is('teamId', null);
-          }
+          query = query.eq('gameId', localGameId).is('teamId', null);
         } else {
           setChatMessages([]);
           return;
@@ -237,7 +226,7 @@ export default function ChatPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [localGameId, localTeamId, activeTab, session, selectedAdminGameId, selectedTeamForAdminChat]);
+  }, [localGameId, "game", session, selectedAdminGameId, selectedTeamForAdminChat]);
 
             // New useEffect for assigning unique icons
 
@@ -624,7 +613,7 @@ export default function ChatPage() {
       let senderName = localPlayerName;
       let currentTeamId = localTeamId;
       let currentGameId = localGameId;
-      let messageType = activeTab;
+      let messageType = "game";
 
       if (session?.user?.role === "admin" || session?.user?.role === "judge") {
         senderId = session.user.id; // Use user ID for admin/judge
@@ -637,7 +626,7 @@ export default function ChatPage() {
         }
       }
 
-      if (!senderId || !senderName || !currentGameId || (messageType === "team" && !currentTeamId)) {
+      if (!senderId || !senderName || !currentGameId) {
         console.error("Missing sender info or game/team ID to send message.");
         return;
       }
@@ -665,7 +654,7 @@ export default function ChatPage() {
       localPlayerName,
       localTeamId,
       localGameId,
-      activeTab,
+      "game",
       session,
       selectedAdminGameId,
       selectedTeamForAdminChat,
@@ -842,21 +831,10 @@ export default function ChatPage() {
           <div className="flex">
             <button
               className={`flex-1 py-3 text-center font-bold ${
-                activeTab === "team"
+                "game" === "game"
                   ? "border-b-2 border-primary text-primary"
                   : "text-gray-500"
               }`}
-              onClick={() => setActiveTab("team")}
-            >
-              Team Chat
-            </button>
-            <button
-              className={`flex-1 py-3 text-center font-bold ${
-                activeTab === "game"
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-gray-500"
-              }`}
-              onClick={() => setActiveTab("game")}
             >
               Game Chat
             </button>
@@ -864,10 +842,7 @@ export default function ChatPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          {activeTab === "team" && (
-            <p className="text-center text-gray-500 mb-4">This chat holds only your team members</p>
-          )}
-          {activeTab === "game" && (
+          {"game" === "game" && (
             <p className="text-center text-gray-500 mb-4">This chat is with all game players</p>
           )}
           <div className="space-y-4">
@@ -908,7 +883,7 @@ export default function ChatPage() {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Type a message..."
-            className="flex-1 bg-input text-card-foreground border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+            className="flex-1 bg-input text-gray-900 border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <button
             type="submit"

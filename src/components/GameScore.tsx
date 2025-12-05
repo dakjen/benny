@@ -41,11 +41,11 @@ export function GameScore({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg text-[#476c2e]" style={{ fontFamily: 'var(--font-permanent-marker)' }}>
-        <h2 className="text-6xl font-bold mb-4">Game Score</h2>
+      <div className="bg-white p-8 rounded-lg text-[#476c2e]">
+        <h2 className="text-2xl font-bold mb-4">Game Score</h2>
         <div className="space-y-4">
           {teams.map((team) => (
-            <div key={team.id} className="flex justify-between text-5xl">
+            <div key={team.id} className="flex justify-between">
               <div className="font-bold">{team.name}</div>
               <div>{team.score}</div>
             </div>

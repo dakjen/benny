@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   other: {
     "mobile-web-app-capable": "yes",
-    "apple-mobile-app-capable": "yes",
+    "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "black-translucent",
     "apple-mobile-web-app-title": "Ben's 25th",
   },
@@ -41,11 +41,11 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/assets/oldben.png" />
       </head>
       <body
-        className={`${manrope.variable} ${permanentMarker.variable} font-permanent-marker`}
-        style={{ height: "100%" }} // Removed overflow: "hidden"
+        className={`${manrope.variable} ${permanentMarker.variable} font-sans`}
+        style={{ height: "100%", overflow: "hidden" }}
       >
-        <AuthProvider>
-          <div style={{ display: "flex", height: "100%" }}> {/* Removed flex: 1 */}
+        <AuthProvider> {/* Wrap children with AuthProvider */}
+          <div style={{ display: "flex", height: "100%", flex: 1 }}>
             {children}
           </div>
         </AuthProvider>

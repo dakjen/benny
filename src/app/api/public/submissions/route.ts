@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { submissions, submissionPhotos, players } from "@/db/schema";
-import { eq, and } from "drizzle-orm"; // Import 'and' for multiple conditions
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
@@ -112,23 +112,12 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const gameId = searchParams.get("gameId");
-  const questionId = searchParams.get("questionId"); // New
-  const playerId = searchParams.get("playerId");     // New
 
   if (!gameId) {
     return NextResponse.json(
       { message: "gameId is required" },
       { status: 400 }
     );
-  }
-
-  let whereClause: any[] = [eq(players.gameId, parseInt(gameId))];
-
-  if (questionId) {
-    whereClause.push(eq(submissions.questionId, parseInt(questionId)));
-  }
-  if (playerId) {
-    whereClause.push(eq(submissions.playerId, parseInt(playerId)));
   }
 
   const gameSubmissions = await db
@@ -139,44 +128,10 @@ export async function GET(req: Request) {
       teamId: players.teamId,
       status: submissions.status,
       score: submissions.score,
-      submissionType: submissions.submission_type, // Include submissionType
-      answerText: submissions.answerText,         // Include answerText
-      video_url: submissions.video_url,           // Include video_url
-      photo_url: submissionPhotos.photo_url,      // Select photo_url from submissionPhotos
-      submissionPhotoId: submissionPhotos.id,     // Select id from submissionPhotos
     })
     .from(submissions)
     .leftJoin(players, eq(submissions.playerId, players.id))
-    .leftJoin(submissionPhotos, eq(submissions.id, submissionPhotos.submissionId)) // Join submissionPhotos
-    .where(and(...whereClause)); // Apply all conditions
+    .where(eq(players.gameId, parseInt(gameId)));
 
-  // Group submissions by their ID to handle multiple photos per submission
-  const groupedSubmissions = gameSubmissions.reduce((acc: any, row: any) => {
-    const existingSubmission = acc.find((s: any) => s.id === row.id);
-    if (existingSubmission) {
-      if (row.submissionPhotoId) { // Check if photo data exists
-        existingSubmission.submission_photos.push({
-          id: row.submissionPhotoId,
-          url: row.photo_url,
-        });
-      }
-    } else {
-      acc.push({
-        id: row.id,
-        playerId: row.playerId,
-        questionId: row.questionId,
-        teamId: row.teamId,
-        status: row.status,
-        score: row.score,
-        submissionType: row.submissionType,
-        answerText: row.answerText,
-        video_url: row.video_url,
-        submission_photos: row.submissionPhotoId ? [{ id: row.submissionPhotoId, url: row.photo_url }] : [],
-      });
-    }
-    return acc;
-  }, []);
-
-
-  return NextResponse.json(groupedSubmissions);
+  return NextResponse.json(gameSubmissions);
 }

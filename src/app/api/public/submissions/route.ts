@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { submissions, submissionPhotos, players } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
@@ -112,6 +112,8 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const gameId = searchParams.get("gameId");
+  const questionId = searchParams.get("questionId"); // New: for fetching submissions for a specific question
+  const playerId = searchParams.get("playerId"); // New: for fetching submissions for a specific player
 
   if (!gameId) {
     return NextResponse.json(
@@ -120,7 +122,16 @@ export async function GET(req: Request) {
     );
   }
 
-  const gameSubmissions = await db
+  let whereConditions: any[] = [eq(players.gameId, parseInt(gameId))];
+
+  if (questionId) {
+    whereConditions.push(eq(submissions.questionId, parseInt(questionId)));
+  }
+  if (playerId) {
+    whereConditions.push(eq(submissions.playerId, parseInt(playerId)));
+  }
+
+  const rawSubmissions = await db
     .select({
       id: submissions.id,
       playerId: submissions.playerId,
@@ -128,10 +139,45 @@ export async function GET(req: Request) {
       teamId: players.teamId,
       status: submissions.status,
       score: submissions.score,
+      answerText: submissions.answerText,
+      video_url: submissions.video_url,
+      submissionType: submissions.submission_type,
+      photo_url: submissionPhotos.photo_url,
+      photo_id: submissionPhotos.id,
     })
     .from(submissions)
     .leftJoin(players, eq(submissions.playerId, players.id))
-    .where(eq(players.gameId, parseInt(gameId)));
+    .leftJoin(submissionPhotos, eq(submissions.id, submissionPhotos.submissionId))
+    .where(and(...whereConditions));
 
-  return NextResponse.json(gameSubmissions);
+  // Group photos by submission
+  const groupedSubmissions = rawSubmissions.reduce((acc, row) => {
+    const existingSubmission = acc.find((s) => s.id === row.id);
+
+    if (!existingSubmission) {
+      const newSubmission: any = {
+        id: row.id,
+        playerId: row.playerId,
+        questionId: row.questionId,
+        teamId: row.teamId,
+        status: row.status,
+        score: row.score,
+        answerText: row.answerText,
+        video_url: row.video_url,
+        submissionType: row.submissionType,
+        submission_photos: [],
+      };
+      if (row.photo_url && row.photo_id) {
+        newSubmission.submission_photos.push({ id: row.photo_id, url: row.photo_url });
+      }
+      acc.push(newSubmission);
+    } else {
+      if (row.photo_url && row.photo_id) {
+        existingSubmission.submission_photos.push({ id: row.photo_id, url: row.photo_url });
+      }
+    }
+    return acc;
+  }, [] as any[]);
+
+  return NextResponse.json(groupedSubmissions);
 }

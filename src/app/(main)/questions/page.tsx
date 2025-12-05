@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { ChevronDown, ChevronUp } from "lucide-react"; // Import icons for accordion
 import { SubmissionForm } from "@/components/SubmissionForm";
@@ -138,7 +138,7 @@ export default function QuestionsPage() {
     fetchGamesAndSetSelected();
   }, [session, localGameId]);
 
-  const handleSubmissionSuccess = () => {
+  const handleSubmissionSuccess = useCallback(() => {
     if (selectedGameId) {
       const fetchCategoriesAndQuestions = async () => {
         try {
@@ -248,14 +248,14 @@ export default function QuestionsPage() {
       };
       fetchCategoriesAndQuestions();
     }
-  };
+  }, [selectedGameId, session, localPlayerId, localTeamId, setAllCategories, setQuestions, setPlayerProgress, setPlayerCompletedCategories, setAllSubmissions]);
 
   // Fetch categories and questions when selectedGameId changes
   useEffect(() => {
     if (selectedGameId) {
       handleSubmissionSuccess(); // Initial fetch
     }
-  }, [selectedGameId, session, localPlayerId, localTeamId, playerProgress]); // Added dependencies
+  }, [selectedGameId, session, localPlayerId, localTeamId, handleSubmissionSuccess]);
 
   useEffect(() => {
     if (!allCategories.length) return;
@@ -474,7 +474,6 @@ export default function QuestionsPage() {
                       <ul className="p-4 border-t border-border space-y-2">
                         {questions
                           .filter((q) => q.categoryId === category.id)
-                          .filter((q) => !allSubmissions.some(s => s.questionId === q.id && s.teamId === localTeamId))
                           .map((question) => (
                             <li
                               key={question.id}

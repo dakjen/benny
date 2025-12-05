@@ -363,7 +363,7 @@ export function SubmissionForm({
                 )}
                 {sub.submissionType === "photo" && sub.submission_photos && sub.submission_photos.length > 0 && (
                   <div>
-                    <p className="text-sm">Photos:</p>
+                    <p className="text-sm">Photo:</p>
                     <div className="flex flex-wrap gap-2 mt-1">
                       {sub.submission_photos.map((photo) => (
                         <Image

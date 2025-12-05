@@ -6,21 +6,22 @@ import Image from "next/image";
 
 type Submission = {
   submission: {
-    id: number;
+    id: number | null; // Can be null for aggregated submission
     questionId: number;
-    answerText: string | null;
-    submission_photos: { id: number; url: string }[]; // Changed from photo_url: string | null;
-    video_url: string | null;
-    status: string;
-    score: number | null;
+    answerText: string | null; // Aggregated text
+    submission_photos: { id: number; url: string }[]; // Aggregated photos
+    video_url: string | null; // Aggregated video
+    status: string; // Aggregated status
+    score: number | null; // Aggregated score
   };
   player: {
-    name: string;
+    name: string; // Placeholder for aggregated view
   };
   question: {
     questionText: string;
   };
   team: {
+    id: number; // Added team id
     name: string;
   };
   category: {
@@ -96,29 +97,25 @@ export default function SubmissionsPage() {
     }
   }, [selectedGameId]);
 
-  const handleGrade = (submissionId: number) => {
-    const score = scores[submissionId];
+  const handleGrade = (teamId: number, questionId: number) => {
+    const score = scores[`${teamId}-${questionId}`];
     if (score === undefined) {
       return;
     }
 
-    fetch(`/api/admin/submissions/${submissionId}`, {
+    fetch(`/api/admin/submissions/grade`, { // New endpoint for grading aggregated submissions
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ score }),
+      body: JSON.stringify({ teamId, questionId, score }),
     }).then(() => {
-      setSubmissions((prev) =>
-        prev.map((s) =>
-          s.submission.id === submissionId
-            ? {
-                ...s,
-                submission: { ...s.submission, status: "graded", score },
-              }
-            : s
-        )
-      );
+      // Refetch submissions to update the UI
+      if (selectedGameId) {
+        fetch(`/api/admin/submissions?gameId=${selectedGameId}`)
+          .then((res) => res.json())
+          .then((data) => setSubmissions(data));
+      }
     });
   };
 
@@ -182,7 +179,7 @@ export default function SubmissionsPage() {
               <div>
                 {category.name} - {question.questionText}
               </div>
-              <div style={{ color: "#476c2e" }}>
+              <div style={{ color: "#7fab61" }}>
                 {questions.find((q) => q.id === submission.questionId)?.points} points
               </div>
               {submission.answerText && <div>{submission.answerText}</div>}
@@ -217,13 +214,13 @@ export default function SubmissionsPage() {
                   onChange={(e) =>
                     setScores({
                       ...scores,
-                      [submission.id]: parseInt(e.target.value),
+                      [`${team.id}-${question.id}`]: parseInt(e.target.value),
                     })
                   }
                 />
                 <button
                   className="bg-blue-500 text-white px-4 py-1 rounded"
-                  onClick={() => handleGrade(submission.id)}
+                  onClick={() => handleGrade(team.id, question.id)}
                 >
                   {submission.status === "graded" ? "Update" : "Grade"}
                 </button>

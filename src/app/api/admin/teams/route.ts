@@ -3,16 +3,28 @@ import { teams } from "@/db/schema";
 import { getServerSession } from "next-auth/next";
 import authOptions from "@/auth";
 import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session || session.user?.role !== "admin") {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const gameId = searchParams.get("gameId");
+
   try {
-    const allTeams = await db.select().from(teams);
-    return NextResponse.json(allTeams, { status: 200 });
+    if (gameId) {
+      const gameTeams = await db
+        .select()
+        .from(teams)
+        .where(eq(teams.gameId, parseInt(gameId)));
+      return NextResponse.json(gameTeams, { status: 200 });
+    } else {
+      const allTeams = await db.select().from(teams);
+      return NextResponse.json(allTeams, { status: 200 });
+    }
   } catch (error) {
     console.error(error);
     return NextResponse.json(

@@ -10,7 +10,7 @@ export function SubmissionForm({
   gameId: number;
 }) {
   const [answerText, setAnswerText] = useState("");
-  const [photo, setPhoto] = useState<File | null>(null);
+  const [photos, setPhotos] = useState<File[]>([]);
   const [video, setVideo] = useState<File | null>(null);
   const [submissionType, setSubmissionType] = useState<"text" | "photo" | "video">(
     "text"
@@ -19,7 +19,11 @@ export function SubmissionForm({
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setPhoto(e.target.files[0]);
+      if (e.target.files.length > 10) {
+        alert("You can only upload a maximum of 10 photos.");
+        return;
+      }
+      setPhotos(Array.from(e.target.files));
     }
   };
 
@@ -59,8 +63,10 @@ export function SubmissionForm({
 
     if (submissionType === "text") {
       formData.append("answerText", answerText);
-    } else if (submissionType === "photo" && photo) {
-      formData.append("photo", photo);
+    } else if (submissionType === "photo" && photos.length > 0) {
+      photos.forEach((photo) => {
+        formData.append("photos", photo);
+      });
     } else if (submissionType === "video" && video) {
       formData.append("video", video);
     }
@@ -82,6 +88,37 @@ export function SubmissionForm({
       console.error("Submission failed with error:", error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleFinished = async () => {
+    const localPlayerId = localStorage.getItem("playerId");
+    if (!localPlayerId) {
+      console.error("Player ID not found in local storage");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/public/questions/complete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          playerId: localPlayerId,
+          questionId,
+        }),
+      });
+
+      if (res.ok) {
+        // Handle successful completion
+        console.log("Question marked as completed");
+      } else {
+        // Handle error
+        console.error("Failed to mark question as completed");
+      }
+    } catch (error) {
+      console.error("Failed to mark question as completed with error:", error);
     }
   };
 
@@ -142,12 +179,13 @@ export function SubmissionForm({
       ) : submissionType === "photo" ? (
         <div>
           <label htmlFor="photo" className="block text-sm font-medium">
-            Upload Photo
+            Upload Photo(s)
           </label>
           <input
             id="photo"
             type="file"
             accept="image/*"
+            multiple
             onChange={handlePhotoChange}
             className="mt-1 block w-full text-sm text-[#476c2e] file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-600 hover:file:bg-indigo-100"
             disabled={isSubmitting}
@@ -169,13 +207,23 @@ export function SubmissionForm({
         </div>
       )}
 
-      <button
-        type="submit"
-        className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? "Submitting..." : "Submit"}
-      </button>
+      <div className="flex space-x-2">
+        <button
+          type="submit"
+          className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Submitting..." : "Submit"}
+        </button>
+        <button
+          type="button"
+          onClick={handleFinished}
+          className="inline-flex justify-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50"
+          disabled={isSubmitting}
+        >
+          Finished
+        </button>
+      </div>
     </form>
   );
 }

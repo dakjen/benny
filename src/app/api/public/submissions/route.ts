@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { submissions } from "@/db/schema";
+import { submissions, submissionPhotos, players } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     if (typeof answerText !== "string") {
       answerText = null;
     }
-    const photo = formData.get("photo") as File | null;
+    const photos = formData.getAll("photos") as File[];
     const video = formData.get("video") as File | null;
 
     const playerId = parseInt(formData.get("playerId") as string);
@@ -35,31 +35,37 @@ export async function POST(req: Request) {
         submission_type: "text",
       });
     } else if (submissionType === "photo") {
-      if (!photo) {
+      if (photos.length === 0) {
         return NextResponse.json(
-          { message: "Photo is required for photo submissions" },
+          { message: "At least one photo is required for photo submissions" },
           { status: 400 }
         );
       }
 
-      const photoName = `${Date.now()}-${photo.name}`;
-      const submissionsDir = path.join(process.cwd(), "public/submissions");
-      await fs.mkdir(submissionsDir, { recursive: true });
-      const photoPath = path.join(submissionsDir, photoName);
-      const bytes = await photo.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      await fs.writeFile(photoPath, buffer);
-
-      const photoUrl = `/submissions/${photoName}`;
-
-      await db.insert(submissions).values({
+      const [submission] = await db.insert(submissions).values({
         playerId,
         questionId: parseInt(questionId),
         answerText: null,
-        photo_url: photoUrl,
         submission_type: "photo",
-      });
+      }).returning();
+
+      for (const photo of photos) {
+        const photoName = `${Date.now()}-${photo.name}`;
+        const submissionsDir = path.join(process.cwd(), "public/submissions");
+        await fs.mkdir(submissionsDir, { recursive: true });
+        const photoPath = path.join(submissionsDir, photoName);
+        const bytes = await photo.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+
+        await fs.writeFile(photoPath, buffer);
+
+        const photoUrl = `/submissions/${photoName}`;
+
+        await db.insert(submissionPhotos).values({
+          submissionId: submission.id,
+          photo_url: photoUrl,
+        });
+      }
     } else if (submissionType === "video") {
       if (!video) {
         return NextResponse.json(
@@ -83,7 +89,6 @@ export async function POST(req: Request) {
         playerId,
         questionId: parseInt(questionId),
         answerText: null,
-        photo_url: null,
         video_url: videoUrl,
         submission_type: "video",
       });

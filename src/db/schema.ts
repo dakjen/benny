@@ -35,9 +35,9 @@ export const questions = pgTable("questions", {
 export const directMessages = pgTable("direct_messages", {
   id: serial("id").primaryKey(),
   sender: text("sender").notNull(),
+  senderName: text("sender_name"), // Made nullable
   message: text("message").notNull(),
   teamId: integer("team_id")
-    .notNull()
     .references(() => teams.id, { onDelete: "cascade" }),
   gameId: integer("game_id")
     .notNull()
@@ -159,7 +159,6 @@ export const submissions = pgTable("submissions", {
   submission_type: text("submission_type", {
     enum: ["photo", "text", "video"],
   }).notNull(),
-  photo_url: text("photo_url"),
   video_url: text("video_url"),
   status: text("status", { enum: ["pending", "graded"] }).notNull().default("pending"),
   score: integer("score"), // Nullable, set after grading
@@ -169,4 +168,12 @@ export const submissions = pgTable("submissions", {
   gradedBy: text("graded_by") // User ID of the admin/judge who graded it
     .references(() => users.id, { onDelete: "set null" }),
   gradedAt: timestamp("graded_at", { withTimezone: true }), // Nullable, set after grading
+});
+
+export const submissionPhotos = pgTable("submission_photos", {
+  id: serial("id").primaryKey(),
+  submissionId: integer("submission_id")
+    .notNull()
+    .references(() => submissions.id, { onDelete: "cascade" }),
+  photo_url: text("photo_url").notNull(),
 });

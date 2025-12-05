@@ -32,7 +32,7 @@ export function GameScore({
               ...team,
               score: scores[index].totalPoints,
             }));
-            teamsWithScores.sort((a, b) => b.score - a.score);
+            teamsWithScores.sort((a: Team, b: Team) => b.score - a.score);
             setTeams(teamsWithScores);
           });
         });

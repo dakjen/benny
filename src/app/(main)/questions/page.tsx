@@ -313,7 +313,7 @@ export default function QuestionsPage() {
                 console.log(
                   "No effectiveCurrentCategoryId set, showing nothing for sequential categories."
                 );
-                displayableCategories = categoriesData.filter(cat => !cat.isSequential);
+                displayableCategories = categoriesData.filter((cat: Category) => !cat.isSequential);
               }
               setCategories(displayableCategories);
             } else {

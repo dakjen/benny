@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase"; // Import Supabase client
 type Message = {
   id: number;
   sender: string;
+  senderName: string; // Added senderName
   message: string;
   teamId: number | null;
   gameId: number;
@@ -643,6 +644,7 @@ export default function ChatPage() {
 
       const messageData = {
         sender: String(senderId),
+        senderName: senderName, // Include senderName here
         message: message,
         teamId: currentTeamId,
         gameId: currentGameId,

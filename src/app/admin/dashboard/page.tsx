@@ -52,9 +52,6 @@ export default function AdminDashboardPage() {
       .then((res) => res.json())
       .then((data) => {
         setGames(data);
-        if (data.length > 0) {
-          setSelectedGameId(data[0].id);
-        }
       });
   }, []);
 
@@ -87,6 +84,9 @@ export default function AdminDashboardPage() {
           value={selectedGameId || ""}
           onChange={(e) => setSelectedGameId(Number(e.target.value))}
         >
+          <option value="" disabled>
+            Select a game
+          </option>
           {games.map((game) => (
             <option key={game.id} value={game.id}>
               {game.name}

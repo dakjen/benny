@@ -5,6 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { GameScore } from "@/components/GameScore";
 
+export const dynamic = 'force-dynamic';
+
 type Submission = {
   submission: {
     id: number;
@@ -93,6 +95,15 @@ export default function AdminDashboardPage() {
             </option>
           ))}
         </select>
+      </div>
+      <div className="mb-8">
+        <Image
+          src="/assets/benfunnyhs.jpg"
+          alt="Ben Funny"
+          width={500}
+          height={300}
+          className="rounded-lg shadow-md"
+        />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full max-w-6xl">
         <div className="p-6 rounded-lg shadow-md" style={{ backgroundColor: "#7fab61" }}>

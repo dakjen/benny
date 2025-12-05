@@ -251,8 +251,8 @@ export default function HelpPage() {
                     <div
                       className={`p-3 rounded-2xl shadow ${
                         msg.senderId === session.user.id
-                          ? "bg-primary rounded-br-none"
-                          : "bg-secondary rounded-bl-none"
+                          ? "bg-[#476c2e] rounded-br-none"
+                          : "bg-[#476c2e] rounded-bl-none"
                       }`}
                     >
                       <p className="font-bold text-sm">{senderInfo.name}</p>
@@ -284,11 +284,20 @@ export default function HelpPage() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-card text-foreground">
-      <header className="bg-background p-4 text-center z-10 shadow-md">
+    <div
+      className="relative flex flex-col h-full bg-card text-foreground" // Added relative for pseudo-element positioning
+      style={{
+        backgroundImage: `url('/assets/benfunnyold.png')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {/* Overlay for opacity */}
+      <div className="absolute inset-0 bg-black opacity-20"></div> 
+      <header className="relative bg-background p-4 text-center z-10 shadow-md"> {/* Added relative and z-10 */}
         <h1 className="text-2xl font-permanent-marker">Help Chat</h1>
       </header>
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="relative flex-1 overflow-y-auto p-4 z-10"> {/* Added relative and z-10 */}
         {messages.map((msg) => {
           const senderInfo = getSenderInfo(msg.senderId);
           const IconComponent: React.ElementType = iconMap[senderInfo.icon] || iconMap.User; // Fallback to User icon
@@ -305,8 +314,8 @@ export default function HelpPage() {
               <div
                 className={`p-3 rounded-2xl shadow ${
                   msg.senderId === localPlayerId?.toString()
-                    ? "bg-primary rounded-br-none"
-                    : "bg-secondary rounded-bl-none"
+                    ? "bg-[#476c2e] rounded-br-none"
+                    : "bg-[#476c2e] rounded-bl-none"
                 }`}
               >
                 <p className="font-bold text-sm">{senderInfo.name}</p>
@@ -316,13 +325,13 @@ export default function HelpPage() {
           );
         })}
       </div>
-      <form onSubmit={handleSendMessage} className="bg-card p-4 border-t border-border flex items-center">
+      <form onSubmit={handleSendMessage} className="relative bg-card p-4 border-t border-border flex items-center z-10"> {/* Added relative and z-10 */}
         <input
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Type a message..."
-          className="flex-1 bg-input text-card-foreground border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+          className="flex-1 bg-input text-black border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
         />
         <button
           type="submit"

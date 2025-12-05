@@ -24,7 +24,7 @@ export function BottomNav() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-secondary h-20 flex justify-around items-center border-t border-border">
+    <nav className="fixed bottom-0 left-0 right-0 h-20 flex justify-around items-center border-t border-border z-50" style={{ backgroundColor: "var(--background)" }}> {/* Changed bg-[#1a202c] to bg-card */}
       {links.map(({ href, label, icon: Icon }) => (
         <Link key={href} href={href} className="flex flex-col items-center justify-center text-foreground">
           <Icon

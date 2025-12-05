@@ -1,13 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react"; // Import useEffect
+import Image from "next/image"; // Import Image for displaying existing existingSubmissions
+
+type ExistingSubmission = {
+  id: number;
+  submissionType: "text" | "photo" | "video";
+  answerText: string | null;
+  photo_url: string | null; // For single photo
+  video_url: string | null;
+  submission_photos: { id: number; url: string }[]; // For multiple photos
+};
 
 export function SubmissionForm({
   questionId,
   gameId,
+  onSubmissionSuccess, // Accept the callback prop
 }: {
   questionId: number;
   gameId: number;
+  onSubmissionSuccess: () => void; // Define the callback prop type
 }) {
   const [answerText, setAnswerText] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
@@ -16,14 +28,62 @@ export function SubmissionForm({
     "text"
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [existingSubmissions, setExistingSubmissions] = useState<ExistingSubmission[]>([]); // New state for existing existingSubmissions
+
+  const photoInputRef = useRef<HTMLInputElement>(null); // Ref for photo input
+  const videoInputRef = useRef<HTMLInputElement>(null); // Ref for video input
+
+  // Effect to fetch existing existingSubmissions
+  useEffect(() => {
+    const fetchExistingSubmissions = async () => {
+      const localPlayerId = localStorage.getItem("playerId");
+      if (!localPlayerId || !questionId || !gameId) return; // Added gameId check
+
+      try {
+        const res = await fetch(
+          `/api/public/submissions?questionId=${questionId}&playerId=${localPlayerId}&gameId=${gameId}` // Added gameId
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setExistingSubmissions(data);
+        } else {
+          console.error("Failed to fetch existing submissions");
+        }
+      } catch (error) {
+        console.error("Error fetching existing submissions:", error);
+      }
+    };
+    fetchExistingSubmissions();
+  }, [questionId, gameId]); // Depend on questionId and gameId
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      if (e.target.files.length > 10) {
-        alert("You can only upload a maximum of 10 photos.");
-        return;
+      const newFiles = Array.from(e.target.files);
+      
+      // Filter out duplicates and combine with existing photos
+      const uniqueNewFiles = newFiles.filter(
+        (newFile) =>
+          !photos.some(
+            (existingFile) =>
+              existingFile.name === newFile.name &&
+              existingFile.size === newFile.size
+          )
+      );
+
+      const combinedPhotos = [...photos, ...uniqueNewFiles];
+
+      if (combinedPhotos.length > 10) {
+        alert("You can only upload a maximum of 10 photos. Excess photos will be ignored.");
+        setPhotos(combinedPhotos.slice(0, 10)); // Truncate to 10 photos
+      } else {
+        setPhotos(combinedPhotos);
       }
-      setPhotos(Array.from(e.target.files));
+      
+      // Clear the input's value so the same file can be selected again if needed
+      if (photoInputRef.current) {
+        photoInputRef.current.value = "";
+      }
     }
   };
 
@@ -48,6 +108,24 @@ export function SubmissionForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+
+    // --- Validation for empty existingSubmissions ---
+    if (submissionType === "text" && answerText.trim() === "") {
+      alert("Please enter a text answer before submitting.");
+      setIsSubmitting(false);
+      return;
+    }
+    if (submissionType === "photo" && photos.length === 0) {
+      alert("Please upload at least one photo before submitting.");
+      setIsSubmitting(false);
+      return;
+    }
+    if (submissionType === "video" && video === null) {
+      alert("Please upload a video before submitting.");
+      setIsSubmitting(false);
+      return;
+    }
+    // --- End Validation ---
 
     const formData = new FormData();
     const localPlayerId = localStorage.getItem("playerId");
@@ -80,6 +158,24 @@ export function SubmissionForm({
       if (res.ok) {
         // Handle successful submission
         console.log("Submission successful");
+        setShowSuccessMessage(true);
+        setTimeout(() => {
+          setShowSuccessMessage(false);
+        }, 3000);
+        // Clear text answer only, photos/video persist until "Finished"
+        setAnswerText(""); 
+        onSubmissionSuccess(); // Call the callback to refetch parent state
+        // Also refetch existing existingSubmissions for this form
+        const localPlayerId = localStorage.getItem("playerId");
+        if (localPlayerId && questionId && gameId) { // Added gameId
+          const res = await fetch(
+            `/api/public/submissions?questionId=${questionId}&playerId=${localPlayerId}&gameId=${gameId}` // Added gameId
+          );
+          if (res.ok) {
+            const data = await res.json();
+            setExistingSubmissions(data);
+          }
+        }
       } else {
         // Handle error
         console.error("Submission failed");
@@ -98,6 +194,15 @@ export function SubmissionForm({
       return;
     }
 
+    // --- Validation for empty form before marking as finished ---
+    // This check should ideally be against existing existingSubmissions, not just current form state
+    // For now, we'll keep the current form state check as a basic safeguard
+    if (answerText.trim() === "" && photos.length === 0 && video === null && existingSubmissions.length === 0) {
+      alert("Please submit an answer before marking as finished.");
+      return;
+    }
+    // --- End Validation ---
+
     try {
       const res = await fetch("/api/public/questions/complete", {
         method: "POST",
@@ -113,6 +218,14 @@ export function SubmissionForm({
       if (res.ok) {
         // Handle successful completion
         console.log("Question marked as completed");
+        // Clear all form fields after "Finished" is clicked
+        setAnswerText("");
+        setPhotos([]);
+        setVideo(null);
+        setExistingSubmissions([]); // Clear existing existingSubmissions
+        if (photoInputRef.current) photoInputRef.current.value = "";
+        if (videoInputRef.current) videoInputRef.current.value = "";
+        onSubmissionSuccess(); // Call the callback to refetch parent state
       } else {
         // Handle error
         console.error("Failed to mark question as completed");
@@ -124,6 +237,9 @@ export function SubmissionForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {showSuccessMessage && (
+        <div className="text-green-500">Submission successful!</div>
+      )}
       <div>
         <label className="flex items-center">
           <input
@@ -189,7 +305,18 @@ export function SubmissionForm({
             onChange={handlePhotoChange}
             className="mt-1 block w-full text-sm text-[#476c2e] file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-600 hover:file:bg-indigo-100"
             disabled={isSubmitting}
+            ref={photoInputRef}
           />
+          {photos.length > 0 && (
+            <div className="mt-2 text-sm text-gray-500">
+              <p>Selected files (to be submitted):</p>
+              <ul>
+                {photos.map((photo, index) => (
+                  <li key={index}>{photo.name}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       ) : (
         <div>
@@ -203,6 +330,7 @@ export function SubmissionForm({
             onChange={handleVideoChange}
             className="mt-1 block w-full text-sm text-[#476c2e] file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-600 hover:file:bg-indigo-100"
             disabled={isSubmitting}
+            ref={videoInputRef}
           />
         </div>
       )}
@@ -224,6 +352,45 @@ export function SubmissionForm({
           Finished
         </button>
       </div>
+
+      {/* Display existing existingSubmissions */}
+      {existingSubmissions.length > 0 && (
+        <div className="mt-4 border-t border-border pt-4">
+          <h3 className="text-lg font-bold mb-2">Your Past Submissions:</h3>
+          <div className="space-y-3">
+            {existingSubmissions.map((sub) => (
+              <div key={sub.id} className=""> {/* Removed p-3 bg-gray-100 rounded-lg shadow-sm */}
+                {sub.submissionType === "text" && (
+                  <p className="text-sm">Text: {sub.answerText}</p>
+                )}
+                {sub.submissionType === "photo" && sub.submission_photos && sub.submission_photos.length > 0 && (
+                  <div>
+                    <p className="text-sm">Photos:</p>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {sub.submission_photos.map((photo) => (
+                        <Image
+                          key={photo.id}
+                          src={photo.url}
+                          alt="Submission photo"
+                          width={50} // Changed from 25
+                          height={50} // Changed from 25
+                          className="rounded-md object-cover"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {sub.submissionType === "video" && sub.video_url && (
+                  <div>
+                    <p className="text-sm">Video:</p>
+                    <video src={sub.video_url} controls className="w-full max-h-24 rounded-md mt-1" /> {/* Changed max-h-12 to max-h-24 */}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </form>
   );
 }

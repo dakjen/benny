@@ -7,13 +7,13 @@ import { supabase } from "@/lib/supabase"; // Import Supabase client
 
 type Message = {
   id: number;
-  sender: string;
-  senderName: string; // Added senderName
-  message: string;
-  teamId: number | null;
-  gameId: number;
+  sender_id: string; // Changed from 'sender' to 'sender_id'
+  sender_name: string; // Changed from 'senderName' to 'sender_name'
+  message_text: string;
+  team_id: number | null; // Changed from 'teamId' to 'team_id'
+  game_id: number; // Changed from 'gameId' to 'game_id'
   type: "team" | "game";
-  createdAt: string;
+  created_at: string; // Changed from 'createdAt' to 'created_at'
 };
 
 type Player = {
@@ -137,21 +137,27 @@ export default function ChatPage() {
     }
   }, [session, localPlayerId, localPlayerName, localTeamId, localGameId]);
 
+  useEffect(() => {
+    setChatMessages([]); // Clear messages when activeTab changes
+  }, [activeTab]);
+
   // Supabase Realtime subscription
   useEffect(() => {
     const isAdminOrJudge = session?.user?.role === "admin" || session?.user?.role === "judge";
 
-    let channelName = 'chat_messages';
+    let channelName = 'all_messages_channel'; // Simplified channel name for diagnostic
     let filterString = '';
+    let currentChatType = activeTab; // 'team' or 'game'
 
+    // The following logic for channelName construction is now bypassed for diagnostic purposes
     if (!isAdminOrJudge) {
       if (localGameId) {
-        channelName = `chat_messages_game_${localGameId}`;
-        filterString = `gameId=eq.${localGameId}`;
+        // channelName = `chat_messages_game_${localGameId}_${currentChatType}`;
+        filterString = `game_id=eq.${localGameId}&type=eq.${currentChatType}`;
         if (activeTab === "team" && localTeamId) {
-          filterString += `&teamId=eq.${localTeamId}`;
+          filterString += `&team_id=eq.${localTeamId}`;
         } else if (activeTab === "game") {
-          filterString += `&teamId=is.null`;
+          filterString += `&team_id=is.null`; // Re-introduced for correct game chat filtering
         }
       } else {
         // If no localGameId for a player, don't subscribe
@@ -159,23 +165,26 @@ export default function ChatPage() {
       }
     } else { // Admin/Judge
       if (selectedAdminGameId) {
-        channelName = `chat_messages_admin_game_${selectedAdminGameId}`;
-        filterString = `gameId=eq.${selectedAdminGameId}`;
+        // channelName = `chat_messages_admin_game_${selectedAdminGameId}_${currentChatType}`; // Keep channel name unique
+        filterString = `game_id=eq.${selectedAdminGameId}&type=eq.${currentChatType}`;
         if (activeTab === "team" && selectedTeamForAdminChat) {
-          filterString += `&teamId=eq.${selectedTeamForAdminChat.id}`;
+          filterString += `&team_id=eq.${selectedTeamForAdminChat.id}`;
         } else if (activeTab === "game") {
-          filterString += `&teamId=is.null`;
+          filterString += `&team_id=is.null`; // Re-introduced for correct game chat filtering
         }
       } else {
         return; // No game selected for admin, no subscription
       }
     }
 
+    console.log('Realtime filterString:', filterString); // Diagnostic log
+
     const channel = supabase
       .channel(channelName)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: filterString }, (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: filterString }, (payload) => {
         console.log('New message received:', payload.new);
         const newMessage = payload.new as Message;
+        console.log('New message after cast:', newMessage); // Added console.log
         setChatMessages((prevMessages) => [...prevMessages, newMessage]);
       })
       .subscribe((status) => {
@@ -193,17 +202,17 @@ export default function ChatPage() {
     // Fetch initial messages
     const fetchInitialMessages = async () => {
       let query = supabase
-        .from('direct_messages')
+        .from('messages')
         .select('*')
-        .order('createdAt', { ascending: true });
+        .order('created_at', { ascending: true });
 
       if (!isAdminOrJudge) {
         if (localGameId) {
-          query = query.eq('gameId', localGameId);
+          query = query.eq('game_id', localGameId).eq('type', activeTab);
           if (activeTab === "team" && localTeamId) {
-            query = query.eq('teamId', localTeamId);
+            query = query.eq('team_id', localTeamId);
           } else if (activeTab === "game") {
-            query = query.is('teamId', null);
+            // Removed query.is('team_id', null) for diagnostic purposes
           }
         } else {
           setChatMessages([]);
@@ -211,11 +220,11 @@ export default function ChatPage() {
         }
       } else { // Admin/Judge
         if (selectedAdminGameId) {
-          query = query.eq('gameId', selectedAdminGameId);
+          query = query.eq('game_id', selectedAdminGameId).eq('type', activeTab);
           if (activeTab === "team" && selectedTeamForAdminChat) {
-            query = query.eq('teamId', selectedTeamForAdminChat.id);
+            query = query.eq('team_id', selectedTeamForAdminChat.id);
           } else if (activeTab === "game") {
-            query = query.is('teamId', null);
+            // Removed query.is('team_id', null) for diagnostic purposes
           }
         } else {
           setChatMessages([]);
@@ -228,6 +237,7 @@ export default function ChatPage() {
       if (error) {
         console.error('Error fetching initial messages:', error);
       } else {
+        console.log('Initial messages fetched:', data); // Added console.log
         setChatMessages(data as Message[]);
       }
     };
@@ -242,87 +252,67 @@ export default function ChatPage() {
             // New useEffect for assigning unique icons
 
             useEffect(() => {
-
-              const newAssignedIcons = { ...assignedIcons };
-
+              const storedIcons = localStorage.getItem("assignedIcons");
+              const initialAssignedIcons: Record<string, React.ComponentType<any>> = storedIcons
+                ? JSON.parse(storedIcons, (key, value) => {
+                    // Revive icon components from string names
+                    if (key !== "" && typeof value === "string" && iconComponentMap[value]) {
+                      return iconComponentMap[value];
+                    }
+                    return value;
+                  })
+                : {};
+              
+              const newAssignedIcons = { ...initialAssignedIcons };
               let changed = false;
 
-          
-
               // Collect all sender IDs from chatMessages
-
-              const senderIdsInChat = new Set(chatMessages.map(msg => msg.sender.toString()));
-
-          
+              const senderIdsInChat = new Set(chatMessages.map(msg => msg.sender_id.toString()));
 
               // Iterate through each sender in the chat
-
               senderIdsInChat.forEach(senderId => {
-
                 if (!newAssignedIcons[senderId]) { // Only assign if not already assigned
-
                   const isAdminSender = adminUsers.some(admin => String(admin.id) === String(senderId));
 
-          
-
+                  let iconToAssign: React.ComponentType<any>;
                   if (isAdminSender) {
-
-                    newAssignedIcons[senderId] = adminIcon;
-
+                    iconToAssign = adminIcon;
                   } else {
-
                     // Find an unused regular icon
-
                     const currentlyUsedRegularIcons = new Set(
-
-                      regularIcons.filter(icon => Object.values(newAssignedIcons).includes(icon))
-
+                      Object.values(newAssignedIcons).filter(icon => regularIcons.includes(icon as any))
                     );
-
                     const availableIcons = regularIcons.filter(icon => !currentlyUsedRegularIcons.has(icon));
 
-          
-
-                    let iconToAssign;
-
                     if (availableIcons.length > 0) {
-
                       // Assign a random available unique icon
-
                       const randomIndex = Math.floor(Math.random() * availableIcons.length);
-
                       iconToAssign = availableIcons[randomIndex];
-
                     } else {
-
                       // Fallback: all regular icons are used, cycle through them based on hash
-
                       const hash = senderId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-
                       const index = hash % regularIcons.length;
-
                       iconToAssign = regularIcons[index];
-
                     }
-
-                    newAssignedIcons[senderId] = iconToAssign;
-
                   }
-
+                  newAssignedIcons[senderId] = iconToAssign;
                   changed = true;
-
                 }
-
               });
 
-          
-
               if (changed) {
-
                 setAssignedIcons(newAssignedIcons);
-
+                // Store string names of icons in localStorage
+                const serializableIcons: Record<string, string> = {};
+                for (const id in newAssignedIcons) {
+                  const iconComponent = newAssignedIcons[id];
+                  const iconName = Object.keys(iconMap).find(key => iconMap[key] === iconComponent);
+                  if (iconName) {
+                    serializableIcons[id] = iconName;
+                  }
+                }
+                localStorage.setItem("assignedIcons", JSON.stringify(serializableIcons));
               }
-
             }, [chatMessages, adminUsers]); // Dependencies
 
     
@@ -643,15 +633,17 @@ export default function ChatPage() {
       }
 
       const messageData = {
-        sender: String(senderId),
-        senderName: senderName, // Include senderName here
-        message: message,
-        teamId: currentTeamId,
-        gameId: currentGameId,
+        sender_id: String(senderId),
+        sender_name: senderName,
+        message_text: message,
+        team_id: currentTeamId, // Changed from 'teamId' to 'team_id'
+        game_id: currentGameId,
         type: messageType,
       };
 
-      const { error } = await supabase.from('direct_messages').insert([messageData]);
+      console.log("Attempting to send messageData:", messageData); // Added console.log
+
+      const { error } = await supabase.from('messages').insert([messageData]);
 
       if (error) {
         console.error('Error sending message:', error);
@@ -716,120 +708,119 @@ export default function ChatPage() {
               ))}
             </select>
           </div>
+        </div>
 
-          {selectedAdminGameId ? (
-            <>
-              <div className="bg-card z-10 shadow-md">
-                <div className="flex">
-                  <button
-                    className={`flex-1 py-3 text-center font-bold ${
-                      activeTab === "game"
-                        ? "border-b-2 border-primary text-primary"
-                        : "text-gray-500"
-                    }`}
-                    onClick={() => {
-                      setActiveTab("game");
-                      setSelectedTeamForAdminChat(null); // Clear selected team when viewing game chat
-                    }}
-                  >
-                    Game Chat
-                  </button>
-                  <button
-                    className={`flex-1 py-3 text-center font-bold ${
-                      activeTab === "team"
-                        ? "border-b-2 border-primary text-primary"
-                        : "text-gray-500"
-                    }`}
-                    onClick={() => setActiveTab("team")}
-                  >
-                    Team Chats
-                  </button>
+        {selectedAdminGameId ? (
+          <>
+            <div className="bg-card z-10 shadow-md">
+              <div className="flex">
+                <button
+                  className={`flex-1 py-3 text-center font-bold ${
+                    activeTab === "game"
+                      ? "border-b-2 border-primary text-primary"
+                      : "text-gray-500"
+                  }`}
+                  onClick={() => {
+                    setActiveTab("game");
+                    setSelectedTeamForAdminChat(null); // Clear selected team when viewing game chat
+                  }}
+                >
+                  Game Chat
+                </button>
+                <button
+                  className={`flex-1 py-3 text-center font-bold ${
+                    activeTab === "team"
+                      ? "border-b-2 border-primary text-primary"
+                      : "text-gray-500"
+                  }`}
+                  onClick={() => setActiveTab("team")}
+                >
+                  Team Chats
+                </button>
+              </div>
+            </div>
+
+            {activeTab === "team" && (
+              <div className="mt-4 border-b border-border pb-4">
+                <h3 className="text-lg font-bold mb-2">Teams in this Game:</h3>
+                <div className="flex flex-wrap gap-2">
+                  {filteredTeams.map((team) => (
+                    <button
+                      key={team.id}
+                      onClick={() => setSelectedTeamForAdminChat(team)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium ${
+                        selectedTeamForAdminChat?.id === team.id
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      {team.name}
+                    </button>
+                  ))}
                 </div>
               </div>
+            )}
 
-              {activeTab === "team" && (
-                <div className="mt-4 border-b border-border pb-4">
-                  <h3 className="text-lg font-bold mb-2">Teams in this Game:</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {filteredTeams.map((team) => (
-                      <button
-                        key={team.id}
-                        onClick={() => setSelectedTeamForAdminChat(team)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium ${
-                          selectedTeamForAdminChat?.id === team.id
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                        }`}
-                      >
-                        {team.name}
-                      </button>
-                    ))}
+            {(activeTab === "game" || (activeTab === "team" && selectedTeamForAdminChat)) ? (
+              <div className="flex flex-col flex-1 overflow-hidden"> {/* New container for scrollable content + input */}
+                <div className="flex-1 overflow-y-auto p-4">
+                  <div className="space-y-4">
+                    {chatMessages.map((msg) => {
+                      const isAdminSender = isAdmin(msg.sender_id);
+                      console.log("Message sender:", msg.sender_id, "isAdminSender:", isAdminSender);
+                      const Icon = assignedIcons[msg.sender_id] || regularIcons[0]; // Fallback
+                      return (
+                                                    <div
+                                                      key={msg.id}
+                                                      className={`flex items-end space-x-3 ${
+                                                        msg.sender_id === session?.user?.id ? "flex-row-reverse" : ""
+                                                      }`}
+                                                    >
+                                                      <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0 flex items-center justify-center">
+                                                        <Icon className="w-5 h-5" />
+                                                      </div>
+                                                      <div
+                                                        className={`p-3 rounded-2xl shadow ${
+                                                          isAdminSender
+                                                            ? "bg-black text-white"
+                                                            : msg.sender_id === session?.user?.id
+                                                            ? "bg-primary rounded-br-none"
+                                                            : "bg-secondary rounded-bl-none"
+                                                        }`}
+                                                      >
+                                                        <p className="font-bold text-sm">{msg.sender_name}</p>
+                                                        <p>{msg.message_text}</p>
+                                                      </div>
+                                                    </div>                        );
+                    })}
                   </div>
                 </div>
-              )}
 
-              {(activeTab === "game" || (activeTab === "team" && selectedTeamForAdminChat)) ? (
-                <>
-                  <div className="flex-1 overflow-y-auto p-4">
-                    <div className="space-y-4">
-                      {chatMessages.map((msg) => {
-                        const isAdminSender = isAdmin(msg.sender);
-                        console.log("Message sender:", msg.sender, "isAdminSender:", isAdminSender);
-                        const Icon = assignedIcons[msg.sender] || regularIcons[0]; // Fallback
-                        return (
-                          <div
-                            key={msg.id}
-                            className={`flex items-end space-x-3 ${
-                              msg.sender === session?.user?.id ? "flex-row-reverse" : ""
-                            }`}
-                          >
-                            <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0 flex items-center justify-center">
-                              <Icon className="w-5 h-5" />
-                            </div>
-                            <div
-                              className={`p-3 rounded-2xl shadow ${
-                                isAdminSender
-                                  ? "bg-black text-white"
-                                  : msg.sender === session?.user?.id
-                                  ? "bg-primary rounded-br-none"
-                                  : "bg-secondary rounded-bl-none"
-                              }`}
-                            >
-                              <p className="font-bold text-sm">{msg.senderName}</p>
-                              <p>{msg.message}</p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <form onSubmit={handleSendMessage} className="bg-card p-4 border-t border-border flex items-center">
-                    <input
-                      type="text"
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      placeholder="Type a message..."
-                      className="flex-1 bg-input text-card-foreground border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
-                    />
-                    <button
-                      type="submit"
-                      className="ml-4 bg-primary text-primary-foreground rounded-full p-3 hover:bg-primary/90 transition-colors"
-                    >
-                      <Send className="h-5 w-5" />
-                    </button>
-                  </form>
-                </>
-              ) : (
-                <p className="text-center text-gray-500 mt-8">
-                  {activeTab === "team" ? "Please select a team to view their chat." : "Select a game to view chats."}
-                </p>
-              )}
-            </>
-          ) : (
-            <p className="text-center text-gray-500 mt-8">Please select a game to view chats.</p>
-          )}
-        </div>
+                <form onSubmit={handleSendMessage} className="bg-card p-4 border-t border-border flex items-center">
+                  <input
+                    type="text"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    className="flex-1 bg-input text-black border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <button
+                    type="submit"
+                    className="ml-4 bg-primary text-primary-foreground rounded-full p-3 hover:bg-primary/90 transition-colors"
+                  >
+                    <Send className="h-5 w-5" />
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <p className="text-center text-gray-500 mt-8">
+                {activeTab === "team" ? "Please select a team to view their chat." : "Select a game to view chats."}
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-center text-gray-500 mt-8">Please select a game to view chats.</p>
+        )}
       </div>
     );
   } else if (isPlayer) {
@@ -863,60 +854,62 @@ export default function ChatPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
-          {activeTab === "team" && (
-            <p className="text-center text-gray-500 mb-4">This chat holds only your team members</p>
-          )}
-          {activeTab === "game" && (
-            <p className="text-center text-gray-500 mb-4">This chat is with all game players</p>
-          )}
-          <div className="space-y-4">
-            {chatMessages.map((msg) => {
-              const isAdminSender = isAdmin(msg.sender);
-              const Icon = assignedIcons[msg.sender] || regularIcons[0]; // Fallback
-              return (
-                <div
-                  key={msg.id}
-                  className={`flex items-end space-x-3 ${
-                    msg.sender === String(localPlayerId) ? "flex-row-reverse" : ""
-                  }`}
-                >
-                  <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0 flex items-center justify-center">
-                    <Icon className="w-5 h-5" />
-                  </div>
+        <div className="flex flex-col flex-1 overflow-hidden"> {/* New container for scrollable content + input */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {activeTab === "team" && (
+              <p className="text-center text-gray-500 mb-4">This chat holds only your team members</p>
+            )}
+            {activeTab === "game" && (
+              <p className="text-center text-gray-500 mb-4">This chat is with all game players</p>
+            )}
+            <div className="space-y-4">
+              {chatMessages.map((msg) => {
+                const isAdminSender = isAdmin(msg.sender_id);
+                const Icon = assignedIcons[msg.sender_id] || regularIcons[0]; // Fallback
+                return (
                   <div
-                    className={`p-3 rounded-2xl shadow ${
-                      isAdminSender
-                        ? "bg-black text-white"
-                        : msg.sender === String(localPlayerId)
-                        ? "bg-primary rounded-br-none text-white"
-                        : "bg-secondary rounded-bl-none text-white"
+                    key={msg.id}
+                    className={`flex items-end space-x-3 ${
+                      msg.sender_id === String(localPlayerId) ? "flex-row-reverse" : ""
                     }`}
                   >
-                    <p className="font-bold text-sm">{msg.senderName}</p>
-                    <p>{msg.message}</p>
+                    <div className="w-8 h-8 rounded-full bg-gray-500 flex-shrink-0 flex items-center justify-center">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div
+                      className={`p-3 rounded-2xl shadow ${
+                        isAdminSender
+                          ? "bg-black text-white"
+                          : msg.sender_id === String(localPlayerId)
+                          ? "bg-primary rounded-br-none text-white"
+                          : "bg-secondary rounded-bl-none text-white"
+                      }`}
+                    >
+                      <p className="font-bold text-sm">{msg.sender_name}</p>
+                      <p>{msg.message_text}</p>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        <form onSubmit={handleSendMessage} className="bg-card p-4 border-t border-border flex items-center">
-          <input
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Type a message..."
-            className="flex-1 bg-input text-card-foreground border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <button
-            type="submit"
-            className="ml-4 bg-primary text-primary-foreground rounded-full p-3 hover:bg-primary/90 transition-colors"
-          >
-            <Send className="h-5 w-5" />
-          </button>
-        </form>
+          <form onSubmit={handleSendMessage} className="bg-card p-4 border-t border-border flex items-center">
+            <input
+              type="text"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Type a message..."
+              className="flex-1 bg-input text-black border border-border rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <button
+              type="submit"
+              className="ml-4 bg-primary text-primary-foreground rounded-full p-3 hover:bg-primary/90 transition-colors"
+            >
+              <Send className="h-5 w-5" />
+            </button>
+          </form>
+        </div>
       </div>
     );
   }

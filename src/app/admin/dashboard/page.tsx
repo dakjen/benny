@@ -73,16 +73,8 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center p-24">
-      <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
-      <div className="mb-8">
-        <Image
-          src="/assets/benfunnyhs.jpg"
-          alt="Ben Funny"
-          width={500}
-          height={300}
-          className="rounded-lg shadow-md"
-        />
-      </div>
+      <h1 className="text-4xl font-bold mb-8 font-permanent-marker">Admin Dashboard</h1>
+
       <div className="mb-8">
         <Image
           src="/assets/benfunnyhs.jpg"

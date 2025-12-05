@@ -49,18 +49,15 @@ export default function QuestionsPage() {
   const [localTeamId, setLocalTeamId] = useState<number | null>(null);
 
   // New states for player progress
-  const [playerCurrentCategoryId, setPlayerCurrentCategoryId] = useState<
-    number | null
-  >(null);
   const [playerCompletedCategories, setPlayerCompletedCategories] = useState<
     number[]
   >([]);
   const [allSubmissions, setAllSubmissions] = useState<Submission[]>([]);
-  const [gameHasSequentialCategories, setGameHasSequentialCategories] =
-    useState(false);
   const [playerProgress, setPlayerProgress] = useState<any>(null);
+  const [allCategories, setAllCategories] = useState<Category[]>([]); // Renamed from allGameCategories
+  const [displayableCategories, setDisplayableCategories] = useState<Category[]>([]);
 
-  // Admin-specific states (kept for now, will be moved or removed later if needed)
+  // Admin-specific states
   const [newQuestionText, setNewQuestionText] = useState("");
   const [newQuestionPoints, setNewQuestionPoints] = useState(0);
 
@@ -213,25 +210,23 @@ export default function QuestionsPage() {
             (q: Question) => q.gameId === selectedGameId
           );
 
-          // Player-specific logic for sequential categories
-          if (!isAdmin && localPlayerId) {
-            let playerProgressData = {
-              currentCategoryId: null,
-              completedCategories: "[]",
-            }; // Initialize with default
+          setAllCategories(categoriesData); // Store all categories for the game
+          setQuestions(questionsData);
 
+          // Player-specific logic for fetching progress and submissions
+          if (!isAdmin && localPlayerId) {
             // Fetch player progress
             const playerProgressResponse = await fetch(
               `/api/public/player-progress?playerId=${localPlayerId}`
             );
             if (playerProgressResponse.ok) {
-              playerProgressData = await playerProgressResponse.json();
+              const playerProgressData = await playerProgressResponse.json();
+              setPlayerProgress(playerProgressData);
               setPlayerCompletedCategories(
                 JSON.parse(playerProgressData.completedCategories || "[]")
               );
             } else {
               console.error("Failed to fetch player progress.");
-              setPlayerCurrentCategoryId(null); // Still set state for later renders
               setPlayerCompletedCategories([]);
             }
 
@@ -246,85 +241,7 @@ export default function QuestionsPage() {
               console.error("Failed to fetch submissions.");
               setAllSubmissions([]);
             }
-
-            // Determine if there are any sequential categories in this game
-            const hasSequential = categoriesData.some(
-              (cat: Category) => cat.isSequential
-            );
-            setGameHasSequentialCategories(hasSequential);
-            let effectiveCurrentCategoryId =
-              playerProgressData.currentCategoryId;
-
-            if (gameHasSequentialCategories) {
-              console.log(
-                "Player-specific logic: gameHasSequentialCategories is true"
-              );
-              console.log(
-                "Current effectiveCurrentCategoryId:",
-                effectiveCurrentCategoryId
-              );
-
-              // If effectiveCurrentCategoryId is null, find the first uncompleted sequential category
-              if (effectiveCurrentCategoryId === null) {
-                console.log(
-                  "effectiveCurrentCategoryId is null, attempting to find first uncompleted sequential category."
-                );
-                const firstUncompletedSequentialCategory = categoriesData
-                  .filter(
-                    (cat: Category) =>
-                      cat.isSequential &&
-                      !playerCompletedCategories.includes(cat.id)
-                  )
-                  .sort((a: Category, b: Category) => a.order - b.order)[0];
-
-                if (firstUncompletedSequentialCategory) {
-                  console.log(
-                    "Found firstUncompletedSequentialCategory:",
-                    firstUncompletedSequentialCategory.id
-                  );
-                  effectiveCurrentCategoryId =
-                    firstUncompletedSequentialCategory.id;
-                  // Also update the backend to set this as the current category
-                  await fetch("/api/public/player-progress", {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      playerId: localPlayerId,
-                      currentCategoryId: firstUncompletedSequentialCategory.id,
-                    }),
-                  });
-                } else {
-                  console.log("No uncompleted sequential category found.");
-                }
-              }
-
-              let displayableCategories = categoriesData;
-              // Filter categories to only show the current one if sequential
-              if (effectiveCurrentCategoryId !== null) {
-                console.log(
-                  "Filtering categories for current effectiveCurrentCategoryId:",
-                  effectiveCurrentCategoryId
-                );
-                displayableCategories = categoriesData.filter(
-                  (cat: Category) => !cat.isSequential || cat.id === effectiveCurrentCategoryId
-                );
-              } else {
-                // If no current category is set, and there are sequential categories, show nothing
-                console.log(
-                  "No effectiveCurrentCategoryId set, showing nothing for sequential categories."
-                );
-                displayableCategories = categoriesData.filter((cat: Category) => !cat.isSequential);
-              }
-              setCategories(displayableCategories);
-            } else {
-              setCategories(categoriesData);
-            }
-            // Update the state variable after all synchronous logic has been applied
-            setPlayerCurrentCategoryId(effectiveCurrentCategoryId);
-          } else {
-            setCategories(categoriesData);
           }
-          setQuestions(questionsData);
         } catch (error) {
           console.error("Error fetching categories or questions:", error);
         }
@@ -339,6 +256,34 @@ export default function QuestionsPage() {
       handleSubmissionSuccess(); // Initial fetch
     }
   }, [selectedGameId, session, localPlayerId, localTeamId, playerProgress]); // Added dependencies
+
+  useEffect(() => {
+    if (!allCategories.length) return;
+
+    const isAdmin = session?.user?.role === "admin";
+    const nonSequentialCategories = allCategories.filter(
+      (cat) => !cat.isSequential
+    );
+    const sequentialCategories = allCategories
+      .filter((cat) => cat.isSequential)
+      .sort((a, b) => a.order - b.order);
+
+    if (isAdmin || sequentialCategories.length === 0) {
+      setDisplayableCategories(allCategories);
+      return;
+    }
+
+    const firstUncompletedSequentialCategory = sequentialCategories.find(
+      (cat) => !playerCompletedCategories.includes(cat.id)
+    );
+
+    let categoriesToShow = [...nonSequentialCategories];
+    if (firstUncompletedSequentialCategory) {
+      categoriesToShow.push(firstUncompletedSequentialCategory);
+    }
+
+    setDisplayableCategories(categoriesToShow);
+  }, [allCategories, playerCompletedCategories, session]);
 
   const toggleCategory = (categoryId: number) => {
     setExpandedCategories((prev) =>
@@ -357,7 +302,7 @@ export default function QuestionsPage() {
 
     return questionsInCategory.every((q) =>
       allSubmissions.some(
-        (s) => s.questionId === q.id && s.status === "graded"
+        (s) => s.questionId === q.id && s.teamId === localTeamId
       )
     );
   };
@@ -489,12 +434,7 @@ export default function QuestionsPage() {
       </div>
     );
   } else if (isPlayer) {
-    const currentCategory = categories.find(
-      (cat) => cat.id === playerCurrentCategoryId
-    );
-    const isCurrentCategoryComplete = currentCategory
-      ? isCategoryComplete(currentCategory.id)
-      : false;
+
 
     return (
       <div className="flex flex-col h-full bg-card text-foreground">
@@ -511,64 +451,12 @@ export default function QuestionsPage() {
                 height={200}
                 className="mx-auto mb-4 rounded-lg shadow-md"
               />
-              {gameHasSequentialCategories && currentCategory ? (
-                // Existing logic for sequential categories
-                <div
-                  key={currentCategory.id}
-                  className="bg-secondary rounded-lg shadow-md"
-                >
-                  <button
-                    className="w-full flex justify-between items-center p-4 font-bold text-lg"
-                    onClick={() => toggleCategory(currentCategory.id)}
-                  >
-                    {currentCategory.name}
-                    {expandedCategories.includes(currentCategory.id) ? (
-                      <ChevronUp className="h-5 w-5" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5" />
-                    )}
-                  </button>
-                  {expandedCategories.includes(currentCategory.id) && (
-                    <ul className="p-4 border-t border-border space-y-2">
-                      {questions
-                        .filter((q) => q.categoryId === currentCategory.id)
-                        .filter((q) => !allSubmissions.some(s => s.questionId === q.id && s.teamId === localTeamId))
-                        .map((question) => (
-                          <li
-                            key={question.id}
-                            className="p-3 bg-[#0b2d65] rounded-lg shadow-sm"
-                          >
-                            <p className="font-bold">{question.questionText}</p>
-                            <p className="text-sm text-gray-400">
-                              {question.points} points
-                            </p>
-                            {selectedGameId && (
-                              <SubmissionForm
-                                questionId={question.id}
-                                gameId={selectedGameId}
-                                onSubmissionSuccess={handleSubmissionSuccess}
-                              />
-                            )}
-                          </li>
-                        ))}
-                    </ul>
-                  )}
-                  {isCurrentCategoryComplete && (
-                    <button
-                      onClick={() => handleCompleteCategory(currentCategory.id)}
-                      className="w-full bg-green-500 text-white rounded-b-lg py-3 font-bold hover:bg-green-600 transition-colors mt-2"
-                    >
-                      Complete Category & Next
-                    </button>
-                  )}
-                </div>
-              ) : // New logic for non-sequential categories or if no current sequential category
-              categories.length > 0 ? (
-                categories.map((category) => (
+              {displayableCategories.length > 0 ? (
+                displayableCategories.map((category) => (
                   <div
                     key={category.id}
                     className={`rounded-lg shadow-md ${
-                      !category.isSequential ? "bg-[#476c2e]" : "bg-secondary"
+                      !category.isSequential ? "bg-[#98abff]" : "bg-[#476c2e]"
                     }`}
                   >
                     <button
@@ -590,7 +478,7 @@ export default function QuestionsPage() {
                           .map((question) => (
                             <li
                               key={question.id}
-                              className="p-3 bg-card rounded-lg shadow-sm"
+                              className="p-3 bg-[#0b2d65] rounded-lg shadow-sm"
                             >
                               <p className="font-bold">
                                 {question.questionText}
@@ -599,14 +487,23 @@ export default function QuestionsPage() {
                                 {question.points} points
                               </p>
                               {selectedGameId && (
-                                                              <SubmissionForm
-                                                                questionId={question.id}
-                                                                gameId={selectedGameId}
-                                                                onSubmissionSuccess={handleSubmissionSuccess}
-                                                              />                              )}
+                                <SubmissionForm
+                                  questionId={question.id}
+                                  gameId={selectedGameId}
+                                  onSubmissionSuccess={handleSubmissionSuccess}
+                                />
+                              )}
                             </li>
                           ))}
                       </ul>
+                    )}
+                    {category.isSequential && isCategoryComplete(category.id) && (
+                      <button
+                        onClick={() => handleCompleteCategory(category.id)}
+                        className="w-full bg-green-500 text-white rounded-b-lg py-3 font-bold hover:bg-green-600 transition-colors mt-2"
+                      >
+                        Complete Category & Next
+                      </button>
                     )}
                   </div>
                 ))

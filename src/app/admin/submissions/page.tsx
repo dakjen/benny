@@ -134,7 +134,7 @@ export default function SubmissionsPage() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Submissions</h1>
+      <h1 className="text-2xl font-bold mb-4 font-permanent-marker">Submissions</h1>
       <div className="flex space-x-4 mb-4">
         <select
           className="w-full bg-input text-[#476c2e] border border-border rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-ring"

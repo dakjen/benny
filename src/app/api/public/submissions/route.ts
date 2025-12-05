@@ -20,6 +20,38 @@ export async function POST(req: Request) {
 
     const playerId = parseInt(formData.get("playerId") as string);
 
+    // Fetch teamId for the player
+    const playerRecord = await db.select({ teamId: players.teamId }).from(players).where(eq(players.id, playerId)).limit(1);
+    if (!playerRecord || playerRecord.length === 0 || !playerRecord[0].teamId) {
+      return NextResponse.json({ message: "Player or team not found" }, { status: 400 });
+    }
+    const teamId = playerRecord[0].teamId;
+
+    // Find existing draft submission for this question and team
+    let existingSubmission = await db.query.submissions.findFirst({
+      where: and(
+        eq(submissions.questionId, parseInt(questionId)),
+        eq(submissions.teamId, teamId),
+        eq(submissions.status, "draft")
+      ),
+    });
+
+    let submissionId: number;
+
+    if (existingSubmission) {
+      submissionId = existingSubmission.id;
+    } else {
+      // Create a new draft submission if none exists
+      const [newSubmission] = await db.insert(submissions).values({
+        playerId, // The player who initiated the draft
+        questionId: parseInt(questionId),
+        teamId: teamId,
+        submission_type: submissionType, // Initial type, can be updated
+        status: "draft",
+      }).returning();
+      submissionId = newSubmission.id;
+    }
+
     if (submissionType === "text") {
       if (!answerText) {
         return NextResponse.json(
@@ -27,13 +59,7 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
-
-      await db.insert(submissions).values({
-        playerId,
-        questionId: parseInt(questionId),
-        answerText,
-        submission_type: "text",
-      });
+      await db.update(submissions).set({ answerText, submission_type: "text" }).where(eq(submissions.id, submissionId));
     } else if (submissionType === "photo") {
       if (photos.length === 0) {
         return NextResponse.json(
@@ -42,12 +68,9 @@ export async function POST(req: Request) {
         );
       }
 
-      const [submission] = await db.insert(submissions).values({
-        playerId,
-        questionId: parseInt(questionId),
-        answerText: null,
-        submission_type: "photo",
-      }).returning();
+      // Delete existing photos for this submission if we are replacing them (or adding to them)
+      // For now, let's assume new photos are added, not replaced.
+      // If replacement is desired, we'd delete all submissionPhotos for submissionId here.
 
       for (const photo of photos) {
         const photoName = `${Date.now()}-${photo.name}`;
@@ -62,10 +85,11 @@ export async function POST(req: Request) {
         const photoUrl = `/submissions/${photoName}`;
 
         await db.insert(submissionPhotos).values({
-          submissionId: submission.id,
+          submissionId: submissionId,
           photo_url: photoUrl,
         });
       }
+      await db.update(submissions).set({ submission_type: "photo" }).where(eq(submissions.id, submissionId));
     } else if (submissionType === "video") {
       if (!video) {
         return NextResponse.json(
@@ -85,13 +109,7 @@ export async function POST(req: Request) {
 
       const videoUrl = `/submissions/${videoName}`;
 
-      await db.insert(submissions).values({
-        playerId,
-        questionId: parseInt(questionId),
-        answerText: null,
-        video_url: videoUrl,
-        submission_type: "video",
-      });
+      await db.update(submissions).set({ video_url: videoUrl, submission_type: "video" }).where(eq(submissions.id, submissionId));
     } else {
       return NextResponse.json(
         { message: "Invalid submission type" },
@@ -99,7 +117,7 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json({ message: "Submission successful" });
+    return NextResponse.json({ message: "Submission successful", submissionId });
   } catch (error) {
     console.error("Error creating submission:", error);
     return NextResponse.json(

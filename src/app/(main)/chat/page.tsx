@@ -66,6 +66,8 @@ export default function ChatPage() {
 
   const { data: session } = useSession();
 
+  const [activeTab, setActiveTab] = useState<"team" | "game">("game");
+
   const [message, setMessage] = useState("");
 
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
@@ -167,7 +169,7 @@ export default function ChatPage() {
 
     const channel = supabase
       .channel(channelName)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: filterString }, (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: filterString }, (payload) => {
         console.log('New message received:', payload.new);
         const newMessage = payload.new as Message;
         setChatMessages((prevMessages) => [...prevMessages, newMessage]);
@@ -187,7 +189,7 @@ export default function ChatPage() {
     // Fetch initial messages
     const fetchInitialMessages = async () => {
       let query = supabase
-        .from('direct_messages')
+        .from('messages')
         .select('*')
         .order('createdAt', { ascending: true });
 
@@ -640,7 +642,7 @@ export default function ChatPage() {
         type: messageType,
       };
 
-      const { error } = await supabase.from('direct_messages').insert([messageData]);
+      const { error } = await supabase.from('messages').insert([messageData]);
 
       if (error) {
         console.error('Error sending message:', error);

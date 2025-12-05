@@ -399,10 +399,10 @@ export default function AdminQuestionsPage() {
                 >
                   {getCategoryName(Number(categoryId))}
                   {expandedCategories.includes(Number(categoryId)) ? (
-                    <ChevronUp className="h-5 w-5" />
-                  ) : (
-                    <ChevronDown className="h-5 w-5" />
-                  )}
+                        <ChevronUp className="h-5 w-5" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5" />
+                      )}
                 </button>
                 {expandedCategories.includes(Number(categoryId)) && (
                   <ul className="p-4 border-t border-border space-y-2">

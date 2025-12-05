@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { ChevronDown, ChevronUp } from "lucide-react"; // Import icons for accordion
+import { ChevronDown, ChevronUp, Sparkles, Swords } from "lucide-react"; // Import icons for accordion
 import { SubmissionForm } from "@/components/SubmissionForm";
 import Image from "next/image";
 
@@ -468,7 +468,11 @@ export default function QuestionsPage() {
                       className="w-full flex justify-between items-center p-4 font-bold text-lg"
                       onClick={() => toggleCategory(category.id)}
                     >
-                      {category.name}
+                      <span className="flex items-center">
+                        {category.isSequential && <Sparkles className="inline-block h-5 w-5 mr-2 text-white" />}
+                        {!category.isSequential && <Swords className="inline-block h-5 w-5 mr-2 text-white" />}
+                        {category.name}
+                      </span>
                       {expandedCategories.includes(category.id) ? (
                         <ChevronUp className="h-5 w-5" />
                       ) : (

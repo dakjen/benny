@@ -1,11 +1,21 @@
 import { db } from "@/db";
-import { players } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { players, submissions } from "@/db/schema"; // Added submissions
+import { eq, and } from "drizzle-orm"; // Added and
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { playerId, questionId } = await req.json();
+    const { playerId, questionId, teamId } = await req.json(); // Added teamId
+
+    // Update the status of the draft submission to "pending"
+    await db
+      .update(submissions)
+      .set({ status: "pending" })
+      .where(and(
+        eq(submissions.questionId, questionId),
+        eq(submissions.teamId, teamId),
+        eq(submissions.status, "draft")
+      ));
 
     const player = await db.query.players.findFirst({
       where: eq(players.id, playerId),

@@ -30,19 +30,27 @@ export function SubmissionForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [existingSubmissions, setExistingSubmissions] = useState<ExistingSubmission[]>([]); // New state for existing existingSubmissions
+  const [localPlayerId, setLocalPlayerId] = useState<string | null>(null);
+  const [localTeamId, setLocalTeamId] = useState<string | null>(null);
 
   const photoInputRef = useRef<HTMLInputElement>(null); // Ref for photo input
   const videoInputRef = useRef<HTMLInputElement>(null); // Ref for video input
+
+  useEffect(() => {
+    setLocalPlayerId(localStorage.getItem("playerId"));
+    setLocalTeamId(localStorage.getItem("teamId"));
+  }, []);
 
   // Effect to fetch existing existingSubmissions
   useEffect(() => {
     const fetchExistingSubmissions = async () => {
       const localPlayerId = localStorage.getItem("playerId");
-      if (!localPlayerId || !questionId || !gameId) return; // Added gameId check
+      const localTeamId = localStorage.getItem("teamId"); // Fetch teamId
+      if (!localPlayerId || !localTeamId || !questionId || !gameId) return;
 
       try {
         const res = await fetch(
-          `/api/public/submissions?questionId=${questionId}&playerId=${localPlayerId}&gameId=${gameId}` // Added gameId
+          `/api/public/submissions?questionId=${questionId}&playerId=${localPlayerId}&gameId=${gameId}&teamId=${localTeamId}&status=draft` // Added teamId and status=draft
         );
         if (res.ok) {
           const data = await res.json();
@@ -55,7 +63,7 @@ export function SubmissionForm({
       }
     };
     fetchExistingSubmissions();
-  }, [questionId, gameId]); // Depend on questionId and gameId
+  }, [questionId, gameId, localPlayerId, localTeamId]); // Added localPlayerId and localTeamId to dependencies
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -111,12 +119,14 @@ export function SubmissionForm({
 
     const formData = new FormData();
     const localPlayerId = localStorage.getItem("playerId");
-    if (!localPlayerId) {
-      console.error("Player ID not found in local storage");
+    const localTeamId = localStorage.getItem("teamId"); // Fetch teamId
+    if (!localPlayerId || !localTeamId) {
+      console.error("Player ID or Team ID not found in local storage");
       setIsSubmitting(false);
       return;
     }
     formData.append("playerId", localPlayerId);
+    formData.append("teamId", localTeamId); // Append teamId
     formData.append("questionId", String(questionId));
     formData.append("gameId", String(gameId));
     formData.append("submissionType", submissionType);
@@ -189,8 +199,9 @@ export function SubmissionForm({
 
   const handleFinished = async () => {
     const localPlayerId = localStorage.getItem("playerId");
-    if (!localPlayerId) {
-      console.error("Player ID not found in local storage");
+    const localTeamId = localStorage.getItem("teamId"); // Fetch teamId
+    if (!localPlayerId || !localTeamId) {
+      console.error("Player ID or Team ID not found in local storage");
       return;
     }
 
@@ -210,6 +221,7 @@ export function SubmissionForm({
         body: JSON.stringify({
           playerId: localPlayerId,
           questionId,
+          teamId: localTeamId, // Include teamId
         }),
       });
 

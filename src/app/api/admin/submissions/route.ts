@@ -36,6 +36,10 @@ export async function GET(req: Request) {
 
   // Group submissions by team and question
   const groupedByTeamAndQuestion = rawSubmissions.reduce((acc, row) => {
+    if (!row.team || !row.question || !row.submission) {
+      // Skip rows where team, question, or submission data is incomplete
+      return acc;
+    }
     const teamQuestionKey = `${row.team.id}-${row.question.id}`;
     let existingTeamQuestionSubmission = acc.get(teamQuestionKey);
 

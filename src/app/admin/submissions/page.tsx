@@ -18,6 +18,7 @@ type Submission = {
     name: string; // Placeholder for aggregated view
   };
   question: {
+    id: number; // Added id
     questionText: string;
   };
   team: {
@@ -58,7 +59,7 @@ export default function SubmissionsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [scores, setScores] = useState<{ [key: number]: number }>({});
+  const [scores, setScores] = useState<{ [key: string]: number }>({});
   const [enlargedPhoto, setEnlargedPhoto] = useState<string | null>(null);
   const [questions, setQuestions] = useState<any[]>([]);
 

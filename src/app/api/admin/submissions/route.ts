@@ -37,9 +37,10 @@ export async function GET(req: Request) {
       .leftJoin(submissionPhotos, eq(submissions.id, submissionPhotos.submissionId)) // Join with submissionPhotos
       .where(eq(questions.gameId, parseInt(gameId)));
 
-    console.log("Raw submissions from DB:", rawSubmissions);
+    console.log("Raw submissions from DB:", rawSubmissions.length);
 
     // Group submissions by team and question
+    console.log("Before reduce");
     const groupedByTeamAndQuestion = rawSubmissions.reduce((acc, row) => {
       if (!row.team || !row.question || !row.submission) {
         // Skip rows where team, question, or submission data is incomplete
@@ -114,7 +115,9 @@ export async function GET(req: Request) {
 
       return acc;
     }, new Map());
+    console.log("After reduce");
 
+    console.log("Before map");
     const finalGroupedSubmissions = Array.from(groupedByTeamAndQuestion.values()).map(
       (group: any) => {
         // Combine aggregated answer texts into a single string or array
@@ -147,8 +150,9 @@ export async function GET(req: Request) {
         };
       }
     );
+    console.log("After map");
 
-    console.log("Fetched and grouped submissions by team and question:", finalGroupedSubmissions);
+    console.log("Fetched and grouped submissions by team and question:", finalGroupedSubmissions.length);
 
     return NextResponse.json(finalGroupedSubmissions);
   } catch (error) {

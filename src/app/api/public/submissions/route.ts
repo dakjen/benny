@@ -124,38 +124,12 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
   const { searchParams } = new URL(req.url);
   const gameId = searchParams.get("gameId");
   const questionId = searchParams.get("questionId");
-
-  console.log("Session in GET /api/public/submissions:", session);
-
-  if (!session || !session.user || !session.user.id) {
-    console.log("Unauthorized: Session or user ID missing.");
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  const authenticatedUserId = session.user.id;
-  console.log("Authenticated User ID:", authenticatedUserId);
-
-  // Find the player associated with the authenticated user ID
-  const playerRecord = await db.query.players.findFirst({
-    where: eq(players.userId, authenticatedUserId),
-  });
-
-  console.log("Player Record found:", playerRecord);
-
-  if (!playerRecord) {
-    console.log("Player not found for this user:", authenticatedUserId);
-    return NextResponse.json({ message: "Player not found for this user" }, { status: 404 });
-  }
-
-  const authenticatedPlayerId = playerRecord.id;
-  console.log("Authenticated Player ID:", authenticatedPlayerId);
+  const playerId = searchParams.get("playerId");
 
   if (!gameId) {
-    console.log("gameId is missing.");
     return NextResponse.json(
       { message: "gameId is required" },
       { status: 400 }
@@ -164,8 +138,11 @@ export async function GET(req: Request) {
 
   let whereConditions: any[] = [
     eq(players.gameId, parseInt(gameId)),
-    eq(submissions.playerId, authenticatedPlayerId) // Filter by the authenticated player's ID
   ];
+
+  if (playerId) {
+    whereConditions.push(eq(submissions.playerId, parseInt(playerId)));
+  }
 
   if (questionId) {
     whereConditions.push(eq(submissions.questionId, parseInt(questionId)));

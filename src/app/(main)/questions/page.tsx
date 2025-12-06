@@ -444,7 +444,7 @@ export default function QuestionsPage() {
 
     return (
       <div className="flex flex-col h-full bg-card text-foreground">
-<div className="p-2 sm:p-4 flex-1 overflow-y-auto max-h-full">
+<div className="p-2 sm:p-4 flex-1 overflow-y-auto pb-20">
           {selectedGameId ? (
             <div className="space-y-4">
               <p className="text-center text-lg font-bold mb-4">
@@ -480,7 +480,7 @@ export default function QuestionsPage() {
                       )}
                     </button>
                     {expandedCategories.includes(category.id) && (
-                      <ul className="p-4 border-t border-border space-y-2">
+                      <ul className="p-4 border-t border-border space-y-2 pb-20">
                         {questions
                           .filter((q) => q.categoryId === category.id)
                           .filter((q) => !playerCompletedQuestions.includes(q.id))

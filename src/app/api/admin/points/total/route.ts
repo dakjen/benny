@@ -13,9 +13,20 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const gameId = searchParams.get("gameId");
+  const teamId = searchParams.get("teamId");
 
   try {
-    const conditions = [eq(submissions.status, "graded")];
+    if (teamId) {
+      const result = await db
+        .select({
+          totalPoints: sum(submissions.score),
+        })
+        .from(submissions)
+        .where(and(eq(submissions.status, "graded"), eq(submissions.teamId, Number(teamId))));
+
+      const totalPointsGranted = result[0]?.totalPoints ? Number(result[0].totalPoints) : 0;
+      return NextResponse.json({ totalPoints: totalPointsGranted }, { status: 200 });
+    }
 
     if (gameId) {
       // Join with players table to filter by gameId
@@ -37,7 +48,7 @@ export async function GET(request: Request) {
         totalPoints: sum(submissions.score),
       })
       .from(submissions)
-      .where(and(...conditions));
+      .where(eq(submissions.status, "graded"));
 
     const totalPointsGranted = result[0]?.totalPoints ? Number(result[0].totalPoints) : 0;
 

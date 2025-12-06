@@ -75,20 +75,14 @@ export async function POST(req: Request) {
       // If replacement is desired, we'd delete all submissionPhotos for submissionId here.
 
       for (const photo of photos) {
-        const photoName = `${Date.now()}-${photo.name}`;
-        const submissionsDir = path.join(process.cwd(), "public/submissions");
-        await fs.mkdir(submissionsDir, { recursive: true });
-        const photoPath = path.join(submissionsDir, photoName);
         const bytes = await photo.arrayBuffer();
         const buffer = Buffer.from(bytes);
-
-        await fs.writeFile(photoPath, buffer);
-
-        const photoUrl = `/submissions/${photoName}`;
+        const base64Data = buffer.toString("base64");
+        const photoDataUrl = `data:${photo.type};base64,${base64Data}`;
 
         await db.insert(submissionPhotos).values({
           submissionId: submissionId,
-          photo_url: photoUrl,
+          photo_data: photoDataUrl,
         });
       }
       await db.update(submissions).set({ submission_type: "photo" }).where(eq(submissions.id, submissionId));
@@ -188,7 +182,7 @@ export async function GET(req: Request) {
       answerText: submissions.answerText,
       video_url: submissions.video_url,
       submissionType: submissions.submission_type,
-      photo_url: submissionPhotos.photo_url,
+      photo_data: submissionPhotos.photo_data,
       photo_id: submissionPhotos.id,
     })
     .from(submissions)
@@ -217,8 +211,8 @@ export async function GET(req: Request) {
       acc.push(existingSubmission);
     }
 
-    if (row.photo_url && row.photo_id && !existingSubmission._photoIds.has(row.photo_id)) {
-      existingSubmission.submission_photos.push({ id: row.photo_id, url: row.photo_url });
+    if (row.photo_data && row.photo_id && !existingSubmission._photoIds.has(row.photo_id)) {
+      existingSubmission.submission_photos.push({ id: row.photo_id, photo_data: row.photo_data });
       existingSubmission._photoIds.add(row.photo_id);
     }
     return acc;

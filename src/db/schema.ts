@@ -181,5 +181,5 @@ export const submissionPhotos = pgTable("submission_photos", {
   submissionId: integer("submission_id")
     .notNull()
     .references(() => submissions.id, { onDelete: "cascade" }),
-  photo_url: text("photo_url").notNull(),
+  photo_data: text("photo_data").notNull(),
 });

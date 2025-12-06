@@ -9,7 +9,7 @@ type Submission = {
     id: number | null; // Can be null for aggregated submission
     questionId: number;
     answerText: string | null; // Aggregated text
-    submission_photos: { id: number; url: string }[]; // Aggregated photos
+    submission_photos: { id: number; photo_data: string }[]; // Aggregated photos
     video_url: string | null; // Aggregated video
     status: string; // Aggregated status
     score: number | null; // Aggregated score
@@ -123,11 +123,12 @@ export default function SubmissionsPage() {
   const filteredSubmissions = submissions
     .filter(
       (submission) =>
-        !selectedTeam || submission.team.name === selectedTeam
+        !selectedTeam || (submission.team && submission.team.name === selectedTeam)
     )
     .filter(
       (submission) =>
-        !selectedCategory || submission.category.name === selectedCategory
+        !selectedCategory ||
+        (submission.category && submission.category.name === selectedCategory)
     );
 
   return (
@@ -175,10 +176,10 @@ export default function SubmissionsPage() {
           ({ submission, player, question, team, category }) => (
             <div key={submission.id} className="border p-4 rounded-lg">
               <div className="font-bold">
-                {team.name} - {player.name}
+                {team?.name} - {player?.name}
               </div>
               <div>
-                {category.name} - {question.questionText}
+                {category?.name} - {question?.questionText}
               </div>
               <div style={{ color: "#7fab61" }}>
                 {questions.find((q) => q.id === submission.questionId)?.points} points
@@ -189,12 +190,12 @@ export default function SubmissionsPage() {
                   {submission.submission_photos.map((photo) => (
                     <Image
                       key={photo.id}
-                      src={photo.url}
+                      src={photo.photo_data}
                       alt="submission"
                       width={600}
                       height={600}
                       className="max-w-xs cursor-pointer"
-                      onClick={() => setEnlargedPhoto(photo.url)}
+                      onClick={() => setEnlargedPhoto(photo.photo_data)}
                     />
                   ))}
                 </div>
